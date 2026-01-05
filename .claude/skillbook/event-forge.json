@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "service": "event-forge",
+  "description": "Skillbook for Event-Forge project - patterns, learnings, and best practices",
+  "skills": [],
+  "patterns": [],
+  "anti_patterns": [],
+  "metadata": {
+    "total_skills": 0,
+    "last_updated": null,
+    "created_at": "2026-01-05T00:00:00Z"
+  }
+}

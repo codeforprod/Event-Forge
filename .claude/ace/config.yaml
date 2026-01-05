@@ -1,0 +1,60 @@
+# ACE Configuration for Event-Forge
+# ===================================
+
+service:
+  name: event-forge
+  type: typescript  # Adjust based on actual project type
+  path: /Users/oleksii/Projects/Node/CallAiris/Event-Forge
+
+# Verification Commands
+verification:
+  test:
+    command: npm test
+    required: true
+    timeout: 300
+
+  lint:
+    command: npm run lint
+    required: true
+    timeout: 60
+
+  build:
+    command: npm run build
+    required: true
+    timeout: 180
+
+  typecheck:
+    command: npm run typecheck
+    required: false
+    timeout: 120
+
+# Startup Configuration
+startup:
+  command: npm run dev
+  health_check:
+    url: http://localhost:3000/health
+    timeout: 30
+    retries: 3
+
+# ACE Loop Settings
+ace:
+  max_iterations: 10
+  stall_detection: 4
+  reflection_enabled: true
+  skill_injection: true
+  auto_commit: false
+
+# Agent Pipeline
+pipeline:
+  default:
+    - TASK_MANAGER
+    - TECHNICAL_LEAD
+    - QA_ENGINEER
+    - SKILLS_MASTER
+    - GIT_MASTER
+    - TASK_VERIFIER
+
+# Skillbook References
+skillbooks:
+  local: .claude/skillbook/event-forge.json
+  shared: ~/.claude/skillbook/shared.json
