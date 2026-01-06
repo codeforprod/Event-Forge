@@ -12,8 +12,9 @@
     "dev": "tsc -b --watch",
     "clean": "rm -rf dist .turbo",
     "lint": "eslint src --ext .ts",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "jest --passWithNoTests",
+    "test:integration": "jest",
+    "test:coverage": "jest --coverage --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
