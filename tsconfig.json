@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/adapter-typeorm" },
+    { "path": "./packages/adapter-mongoose" },
+    { "path": "./packages/publisher-rabbitmq" },
+    { "path": "./packages/nestjs" }
+  ]
+}

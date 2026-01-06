@@ -4,7 +4,7 @@
   "parserOptions": {
     "ecmaVersion": 2022,
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": ["./tsconfig.json", "./packages/*/tsconfig.lint.json"]
   },
   "plugins": ["@typescript-eslint", "import"],
   "extends": [
@@ -30,5 +30,5 @@
       }
     ]
   },
-  "ignorePatterns": ["dist", "node_modules", "coverage", "*.js"]
+  "ignorePatterns": ["dist", "node_modules", "coverage", "*.js", "**/*.spec.ts", "**/*.test.ts", "**/__tests__/**"]
 }
