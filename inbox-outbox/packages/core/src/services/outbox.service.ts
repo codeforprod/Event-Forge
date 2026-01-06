@@ -134,6 +134,11 @@ export class OutboxService extends EventEmitter {
         this.config.workerId,
       );
 
+      //Guard against undefined/null
+      if (!messages || messages.length === 0) {
+        return;
+      }
+
       // Process each message
       await Promise.all(messages.map((message) => this.publishMessage(message)));
     } catch (error) {
