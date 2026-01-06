@@ -1,18 +1,11 @@
 
-> @event-forge/inbox-outbox-rabbitmq@1.0.0 test
-> jest
+> @event-forge/inbox-outbox-rabbitmq@1.0.0 test /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/publisher-rabbitmq
+> jest --passWithNoTests
 
-● Validation Error:
+watchman warning:  Recrawled this watch 23 times, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge' ; watchman watch-project '/private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge'`
 
-  Directory /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/publisher-rabbitmq/test in the roots[1] option was not found.
-
-  Configuration Documentation:
-  https://jestjs.io/docs/configuration
-
-npm error Lifecycle script `test` failed with error:
-npm error code 1
-npm error path /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/publisher-rabbitmq
-npm error workspace @event-forge/inbox-outbox-rabbitmq@1.0.0
-npm error location /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/publisher-rabbitmq
-npm error command failed
-npm error command sh -c jest
+No tests found, exiting with code 0
