@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "event-forge-inbox-outbox"
+version = "1.0.0"
+description = "Universal Inbox-Outbox Pattern Library for Python - reliable message delivery in distributed systems"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Event-Forge Team", email = "dev@event-forge.io"}
+]
+keywords = ["inbox", "outbox", "transactional", "message", "pattern", "postgresql", "mongodb", "rabbitmq", "sqlalchemy"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: AsyncIO",
+]
+
+dependencies = [
+    "pydantic>=2.0.0,<3.0.0",
+    "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
+]
+
+[project.optional-dependencies]
+rabbitmq = [
+    "aio-pika>=9.0.0,<10.0.0",
+]
+mongodb = [
+    "motor>=3.3.0,<4.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "ruff>=0.0.285",
+    "mypy>=1.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/codeforprod/Event-Forge"
+Documentation = "https://github.com/codeforprod/Event-Forge/tree/main/packages/python"
+Repository = "https://github.com/codeforprod/Event-Forge"
+Issues = "https://github.com/codeforprod/Event-Forge/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/event_forge_inbox_outbox"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"

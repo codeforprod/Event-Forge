@@ -1,2 +1,74 @@
 .idea/
 .claude/tasks/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Backup files
+*.bak
+*.bak*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cache
+.turbo/
+.cache/
+.eslintcache
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+env/
