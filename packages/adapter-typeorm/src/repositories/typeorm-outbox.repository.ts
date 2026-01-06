@@ -1,11 +1,11 @@
-import { DataSource, EntityManager, LessThan, Repository } from 'typeorm';
-
 import {
   CreateOutboxMessageDto,
   IOutboxRepository,
   OutboxMessage,
   OutboxMessageStatus,
 } from '@event-forge/inbox-outbox-core';
+import { DataSource, EntityManager, LessThan, Repository } from 'typeorm';
+
 
 import { OutboxMessageEntity } from '../entities/outbox-message.entity';
 
@@ -83,9 +83,9 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
   async markPublished(id: string): Promise<void> {
     await this.repository.update(id, {
       status: OutboxMessageStatus.PUBLISHED,
-      lockedBy: null as any,
-      lockedAt: null as any,
-    });
+      lockedBy: null,
+      lockedAt: null,
+    } as never);
   }
 
   async markFailed(id: string, error: string, permanent = false): Promise<void> {
@@ -101,9 +101,9 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
         status,
         retryCount: () => 'retry_count + 1',
         errorMessage: error,
-        lockedBy: null as any,
-        lockedAt: null as any,
-      })
+        lockedBy: null,
+        lockedAt: null,
+      } as never)
       .where('id = :id', { id })
       .execute();
   }
@@ -111,9 +111,9 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
   async releaseLock(id: string): Promise<void> {
     await this.repository.update(id, {
       status: OutboxMessageStatus.PENDING,
-      lockedBy: null as any,
-      lockedAt: null as any,
-    });
+      lockedBy: null,
+      lockedAt: null,
+    } as never);
   }
 
   async releaseStaleLocks(olderThan: Date): Promise<number> {
@@ -122,9 +122,9 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
       .update(OutboxMessageEntity)
       .set({
         status: OutboxMessageStatus.PENDING,
-        lockedBy: null as any,
-        lockedAt: null as any,
-      })
+        lockedBy: null,
+        lockedAt: null,
+      } as never)
       .where('status = :status', { status: OutboxMessageStatus.PROCESSING })
       .andWhere('lockedAt < :olderThan', { olderThan })
       .execute();

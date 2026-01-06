@@ -1,3 +1,4 @@
+import { InboxMessage, InboxMessageStatus } from '@event-forge/inbox-outbox-core';
 import {
   Column,
   CreateDateColumn,
@@ -6,7 +7,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-import { InboxMessage, InboxMessageStatus } from '@event-forge/inbox-outbox-core';
 
 /**
  * TypeORM Entity for Inbox Messages

@@ -1,10 +1,11 @@
-import { Connection, Model, ClientSession } from 'mongoose';
 import {
   CreateOutboxMessageDto,
   IOutboxRepository,
   OutboxMessage,
   OutboxMessageStatus,
 } from '@event-forge/inbox-outbox-core';
+import { Connection, Model, ClientSession } from 'mongoose';
+
 import { OutboxMessageDocument } from '../schemas/outbox-message.schema';
 
 /**
@@ -178,7 +179,7 @@ export class MongooseOutboxRepository implements IOutboxRepository {
   /**
    * Convert Mongoose document to OutboxMessage interface
    */
-  private toOutboxMessage(doc: OutboxMessageDocument) {
+  private toOutboxMessage(doc: OutboxMessageDocument): OutboxMessage {
     return {
       id: doc._id.toString(),
       aggregateType: doc.aggregateType,

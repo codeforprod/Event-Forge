@@ -1,5 +1,5 @@
-import { Schema, Document, Model, Types } from 'mongoose';
 import { OutboxMessage, OutboxMessageStatus } from '@event-forge/inbox-outbox-core';
+import { Schema, Document, Model, Types } from 'mongoose';
 
 /**
  * Mongoose Document interface for OutboxMessage
@@ -125,9 +125,13 @@ OutboxMessageSchema.index(
 OutboxMessageSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transform: (_doc: any, ret: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     ret.id = ret._id.toString();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     delete ret._id;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return ret;
   },
 });
@@ -135,9 +139,13 @@ OutboxMessageSchema.set('toJSON', {
 OutboxMessageSchema.set('toObject', {
   virtuals: true,
   versionKey: false,
-  transform: (_doc, ret: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transform: (_doc: any, ret: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     ret.id = ret._id.toString();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     delete ret._id;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return ret;
   },
 });

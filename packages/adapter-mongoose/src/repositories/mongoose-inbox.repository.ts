@@ -1,10 +1,12 @@
-import { Model } from 'mongoose';
 import {
   CreateInboxMessageDto,
   IInboxRepository,
+  InboxMessage,
   InboxMessageStatus,
   RecordInboxMessageResult,
 } from '@event-forge/inbox-outbox-core';
+import { Model } from 'mongoose';
+
 import { InboxMessageDocument } from '../schemas/inbox-message.schema';
 
 /**
@@ -22,8 +24,11 @@ export class MongooseInboxRepository implements IInboxRepository {
     });
 
     if (existing) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const message = this.toInboxMessage(existing as InboxMessageDocument);
       return {
-        message: this.toInboxMessage(existing),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        message,
         isDuplicate: true,
       };
     }
@@ -39,8 +44,11 @@ export class MongooseInboxRepository implements IInboxRepository {
 
     try {
       const saved = await document.save();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const message = this.toInboxMessage(saved as InboxMessageDocument);
       return {
-        message: this.toInboxMessage(saved),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        message,
         isDuplicate: false,
       };
     } catch (error) {
@@ -58,8 +66,11 @@ export class MongooseInboxRepository implements IInboxRepository {
           );
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const message = this.toInboxMessage(existing as InboxMessageDocument);
         return {
-          message: this.toInboxMessage(existing),
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message,
           isDuplicate: true,
         };
       }
@@ -123,7 +134,7 @@ export class MongooseInboxRepository implements IInboxRepository {
   /**
    * Convert Mongoose document to InboxMessage interface
    */
-  private toInboxMessage(doc: InboxMessageDocument) {
+  private toInboxMessage(doc: InboxMessageDocument): InboxMessage {
     return {
       id: doc._id.toString(),
       messageId: doc.messageId,
@@ -133,7 +144,6 @@ export class MongooseInboxRepository implements IInboxRepository {
       status: doc.status,
       errorMessage: doc.errorMessage ?? undefined,
       createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
     };
   }
 }

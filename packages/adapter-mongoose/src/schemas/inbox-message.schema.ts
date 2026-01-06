@@ -1,5 +1,5 @@
-import { Schema, Document, Model, Types } from 'mongoose';
 import { InboxMessage, InboxMessageStatus } from '@event-forge/inbox-outbox-core';
+import { Schema, Document, Model, Types } from 'mongoose';
 
 /**
  * Mongoose Document interface for InboxMessage

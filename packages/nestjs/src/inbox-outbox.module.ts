@@ -175,7 +175,7 @@ export class InboxOutboxModule {
       return {
         provide: INBOX_OUTBOX_OPTIONS,
         useFactory: options.useFactory,
-        inject: (options.inject || []) as any[],
+        inject: options.inject || [],
       };
     }
 
@@ -207,7 +207,7 @@ export class InboxOutboxModule {
     return [
       {
         provide: OUTBOX_REPOSITORY,
-        useFactory: (options: InboxOutboxModuleOptions) => {
+        useFactory: (options: InboxOutboxModuleOptions): IOutboxRepository | null => {
           if (!options.outbox?.repository) {
             return null;
           }
@@ -223,7 +223,7 @@ export class InboxOutboxModule {
       },
       {
         provide: INBOX_REPOSITORY,
-        useFactory: (options: InboxOutboxModuleOptions) => {
+        useFactory: (options: InboxOutboxModuleOptions): IInboxRepository | null => {
           if (!options.inbox?.repository) {
             return null;
           }
@@ -239,7 +239,7 @@ export class InboxOutboxModule {
       },
       {
         provide: MESSAGE_PUBLISHER,
-        useFactory: (options: InboxOutboxModuleOptions) => {
+        useFactory: (options: InboxOutboxModuleOptions): IMessagePublisher | null => {
           if (!options.publisher) {
             return null;
           }
@@ -259,7 +259,7 @@ export class InboxOutboxModule {
           repository: IOutboxRepository,
           publisher: IMessagePublisher,
           options: InboxOutboxModuleOptions,
-        ) => {
+        ): OutboxService | null => {
           if (!repository || !publisher) {
             return null;
           }
@@ -269,7 +269,7 @@ export class InboxOutboxModule {
       },
       {
         provide: INBOX_SERVICE,
-        useFactory: (repository: IInboxRepository, options: InboxOutboxModuleOptions) => {
+        useFactory: (repository: IInboxRepository, options: InboxOutboxModuleOptions): InboxService | null => {
           if (!repository) {
             return null;
           }

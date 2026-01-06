@@ -5,7 +5,7 @@ import {
   OutboxConfig,
   InboxConfig,
 } from '@event-forge/inbox-outbox-core';
-import { ModuleMetadata, Type } from '@nestjs/common';
+import { InjectionToken, ModuleMetadata, OptionalFactoryDependency, Type } from '@nestjs/common';
 
 /**
  * Options for configuring the Inbox-Outbox module
@@ -38,5 +38,5 @@ export interface InboxOutboxModuleAsyncOptions extends Pick<ModuleMetadata, 'imp
   useFactory?: (
     ...args: unknown[]
   ) => Promise<InboxOutboxModuleOptions> | InboxOutboxModuleOptions;
-  inject?: unknown[];
+  inject?: (InjectionToken | OptionalFactoryDependency)[];
 }
