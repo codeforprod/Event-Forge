@@ -73,15 +73,68 @@ PostgreSQL adapter using TypeORM.
 
 ### 📦 Mongoose Adapter (`@event-forge/inbox-outbox-mongoose`)
 
-MongoDB adapter using Mongoose (implementation in progress).
+MongoDB adapter using Mongoose.
+
+**Schemas:**
+- `OutboxMessageSchema` - Mongoose schema with indexes
+- `InboxMessageSchema` - Mongoose schema with unique index
+
+**Repositories:**
+- `MongooseOutboxRepository` - Implements `IOutboxRepository` with `findOneAndUpdate`
+- `MongooseInboxRepository` - Implements `IInboxRepository` with deduplication
+
+**Key Features:**
+- Atomic operations using `findOneAndUpdate`
+- MongoDB-specific optimizations
+- Compatible with existing message-relay systems
 
 ### 📦 RabbitMQ Publishers (`@event-forge/inbox-outbox-rabbitmq`)
 
-RabbitMQ integration (implementation in progress).
+RabbitMQ integration with two publisher implementations.
+
+**Publishers:**
+- `GolevelupPublisher` - For `@golevelup/nestjs-rabbitmq` (event-forge Backend style)
+- `MicroservicesPublisher` - For `@nestjs/microservices` (Holocron style)
 
 ### 📦 NestJS Module (`@event-forge/inbox-outbox-nestjs`)
 
-NestJS integration module (implementation in progress).
+NestJS integration module.
+
+**Module:**
+- `InboxOutboxModule.forRoot(options)` - Sync configuration
+- `InboxOutboxModule.forRootAsync(options)` - Async configuration
+
+**Exports:**
+- `OUTBOX_SERVICE`, `INBOX_SERVICE`, `OUTBOX_REPOSITORY`, `INBOX_REPOSITORY`
+
+### 🐍 Python Package (`event-forge-inbox-outbox`)
+
+Python implementation for Python/SQLAlchemy services.
+
+**Models (Pydantic):**
+- `CreateOutboxMessageDto`, `OutboxMessage`
+- `CreateInboxMessageDto`, `InboxMessage`
+- `OutboxMessageStatus`, `InboxMessageStatus` enums
+
+**Repository Interfaces:**
+- `IOutboxRepository` - Async repository interface
+- `IInboxRepository` - Async repository interface
+
+**SQLAlchemy Entities:**
+- `OutboxMessageEntity` - PostgreSQL entity with indexes
+- `InboxMessageEntity` - PostgreSQL entity with unique constraint
+
+**Services:**
+- `OutboxService` - Async polling, batch processing, cleanup
+- `InboxService` - Handler registration, message processing
+
+**Installation:**
+```bash
+pip install event-forge-inbox-outbox
+pip install event-forge-inbox-outbox[rabbitmq]  # with RabbitMQ support
+```
+
+**Target:** Event-Forge Agent (Python service)
 
 ## Installation
 
