@@ -1,2 +1,43 @@
 .idea/
 .claude/tasks/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Backup files
+*.bak
+*.bak*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cache
+.turbo/
+.cache/
+.eslintcache
+
+# Environment
+.env
+.env.local
+.env.*.local
