@@ -17,6 +17,7 @@ import { InboxMessage, InboxMessageStatus } from '@event-forge/inbox-outbox-core
 @Index(['eventType'])
 @Index(['status'])
 @Index(['createdAt'])
+@Index(['receivedAt'])
 export class InboxMessageEntity implements InboxMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -48,4 +49,7 @@ export class InboxMessageEntity implements InboxMessage {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @CreateDateColumn()
+  receivedAt: Date;
 }

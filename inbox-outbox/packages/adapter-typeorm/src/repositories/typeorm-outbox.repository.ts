@@ -89,23 +89,23 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
   }
 
   async markFailed(id: string, error: string, permanent = false): Promise<void> {
-    const message = await this.repository.findOne({ where: { id } });
-
-    if (!message) {
-      return;
-    }
-
     const status = permanent
       ? OutboxMessageStatus.PERMANENTLY_FAILED
       : OutboxMessageStatus.FAILED;
 
-    await this.repository.update(id, {
-      status,
-      retryCount: message.retryCount + 1,
-      errorMessage: error,
-      lockedBy: null as any,
-      lockedAt: null as any,
-    });
+    // Use atomic increment to avoid read-then-write race condition
+    await this.repository
+      .createQueryBuilder()
+      .update(OutboxMessageEntity)
+      .set({
+        status,
+        retryCount: () => 'retry_count + 1',
+        errorMessage: error,
+        lockedBy: null as any,
+        lockedAt: null as any,
+      })
+      .where('id = :id', { id })
+      .execute();
   }
 
   async releaseLock(id: string): Promise<void> {

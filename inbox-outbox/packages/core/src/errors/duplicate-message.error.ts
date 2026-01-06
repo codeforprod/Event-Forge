@@ -9,6 +9,10 @@ export class DuplicateMessageError extends Error {
   ) {
     super(`Duplicate message: ${messageId} from ${source}`);
     this.name = 'DuplicateMessageError';
-    Error.captureStackTrace(this, this.constructor);
+
+    // captureStackTrace is only available in V8 (Node.js, Chrome)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
   }
 }

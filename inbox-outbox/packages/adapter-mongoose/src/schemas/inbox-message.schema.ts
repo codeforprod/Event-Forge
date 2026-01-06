@@ -42,6 +42,11 @@ export const InboxMessageSchema = new Schema<InboxMessageDocument>(
       type: String,
       default: null,
     },
+    processedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },

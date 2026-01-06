@@ -6,6 +6,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Backup files
+*.bak
+*.bak*
+
 # Test coverage
 coverage/
 .nyc_output/

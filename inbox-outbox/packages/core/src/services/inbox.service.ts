@@ -106,8 +106,19 @@ export class InboxService extends EventEmitter {
       // Mark as processing
       await this.repository.markProcessing(message.id);
 
-      // Execute all handlers
-      await Promise.all(handlers.map((handler) => handler(message)));
+      // Execute all handlers and collect results
+      const results = await Promise.allSettled(
+        handlers.map((handler) => handler(message)),
+      );
+
+      // Check if any handler failed
+      const failures = results.filter(
+        (r): r is PromiseRejectedResult => r.status === 'rejected',
+      );
+      if (failures.length > 0) {
+        // Get first failure reason
+        throw failures[0].reason;
+      }
 
       // Mark as processed
       await this.repository.markProcessed(message.id);

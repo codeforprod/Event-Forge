@@ -52,8 +52,14 @@ export class MongooseInboxRepository implements IInboxRepository {
           source: dto.source,
         });
 
+        if (!existing) {
+          throw new Error(
+            `Race condition: Duplicate key error but message not found for messageId=${dto.messageId}, source=${dto.source}`,
+          );
+        }
+
         return {
-          message: this.toInboxMessage(existing!),
+          message: this.toInboxMessage(existing),
           isDuplicate: true,
         };
       }
@@ -87,6 +93,7 @@ export class MongooseInboxRepository implements IInboxRepository {
       {
         $set: {
           status: InboxMessageStatus.PROCESSED,
+          processedAt: new Date(),
         },
       },
     );

@@ -62,8 +62,14 @@ export class TypeOrmInboxRepository implements IInboxRepository {
           },
         });
 
+        if (!existing) {
+          throw new Error(
+            `Race condition: Duplicate key error but message not found for messageId=${dto.messageId}, source=${dto.source}`,
+          );
+        }
+
         return {
-          message: existing!,
+          message: existing,
           isDuplicate: true,
         };
       }
