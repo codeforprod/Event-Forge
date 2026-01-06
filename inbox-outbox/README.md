@@ -1,0 +1,281 @@
+# Universal Inbox-Outbox Library
+
+A database-agnostic library implementing the Transactional Inbox-Outbox pattern for reliable message delivery.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    @event-forge/inbox-outbox (NPM)                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Core Layer (database-agnostic)                                         │
+│  ├── Interfaces: IOutboxRepository, IInboxRepository                    │
+│  ├── Services: OutboxService, InboxService                              │
+│  ├── Decorators: @OutboxHandler, @InboxHandler                          │
+│  └── Errors: ProcessingError, DuplicateMessageError                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Adapters (pluggable)                                                   │
+│  ├── PostgreSQL (TypeORM)     → event-forge Backend                    │
+│  ├── MongoDB (Mongoose)       → Holocron, Legacy projects               │
+│  └── Custom                   → User-defined                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Publishers (pluggable)                                                 │
+│  ├── RabbitMQ (@golevelup)    → Default                                 │
+│  ├── RabbitMQ (microservices) → Holocron style                          │
+│  └── Custom                   → Kafka, Redis Streams, etc.              │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Packages
+
+### 📦 Core Package (`@event-forge/inbox-outbox-core`)
+
+Core interfaces, services, and business logic.
+
+**Interfaces:**
+- `IOutboxRepository` - Outbox message persistence
+- `IInboxRepository` - Inbox message persistence
+- `IMessagePublisher` - Message broker abstraction
+
+**Services:**
+- `OutboxService` - Polling + EventEmitter hybrid, message creation
+- `InboxService` - Handler registration, deduplication
+
+**Decorators:**
+- `@OutboxHandler(options)` - Mark methods as outbox handlers
+- `@InboxHandler(options)` - Mark methods as inbox handlers
+
+**Errors:**
+- `ProcessingError` - Permanent failure (no retries)
+- `DuplicateMessageError` - Message already received
+
+**Configuration:**
+- `OutboxConfig` - Polling interval, batch size, retry logic
+- `InboxConfig` - Cleanup settings
+
+### 📦 TypeORM Adapter (`@event-forge/inbox-outbox-typeorm`)
+
+PostgreSQL adapter using TypeORM.
+
+**Entities:**
+- `OutboxMessageEntity` - TypeORM entity with proper indexes
+- `InboxMessageEntity` - TypeORM entity with unique constraint
+
+**Repositories:**
+- `TypeOrmOutboxRepository` - Implements `IOutboxRepository` with `SKIP LOCKED`
+- `TypeOrmInboxRepository` - Implements `IInboxRepository` with deduplication
+
+**Key Features:**
+- Uses PostgreSQL `FOR UPDATE SKIP LOCKED` for concurrent processing
+- Proper transaction support via `EntityManager`
+- Optimized indexes for performance
+- Automatic stale lock release
+
+### 📦 Mongoose Adapter (`@event-forge/inbox-outbox-mongoose`)
+
+MongoDB adapter using Mongoose (implementation in progress).
+
+### 📦 RabbitMQ Publishers (`@event-forge/inbox-outbox-rabbitmq`)
+
+RabbitMQ integration (implementation in progress).
+
+### 📦 NestJS Module (`@event-forge/inbox-outbox-nestjs`)
+
+NestJS integration module (implementation in progress).
+
+## Installation
+
+```bash
+# Core package
+npm install @event-forge/inbox-outbox-core
+
+# TypeORM adapter
+npm install @event-forge/inbox-outbox-typeorm typeorm
+
+# Mongoose adapter
+npm install @event-forge/inbox-outbox-mongoose mongoose
+
+# RabbitMQ publishers
+npm install @event-forge/inbox-outbox-rabbitmq
+
+# NestJS module (includes all)
+npm install @event-forge/inbox-outbox-nestjs
+```
+
+## Quick Start
+
+### TypeORM (PostgreSQL)
+
+```typescript
+import { DataSource } from 'typeorm';
+import { OutboxService, InboxService } from '@event-forge/inbox-outbox-core';
+import {
+  TypeOrmOutboxRepository,
+  TypeOrmInboxRepository,
+  OutboxMessageEntity,
+  InboxMessageEntity,
+} from '@event-forge/inbox-outbox-typeorm';
+import { GolevelupPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+
+// Setup DataSource
+const dataSource = new DataSource({
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'user',
+  password: 'password',
+  database: 'mydb',
+  entities: [OutboxMessageEntity, InboxMessageEntity],
+  synchronize: false, // Use migrations in production
+});
+
+await dataSource.initialize();
+
+// Create repositories
+const outboxRepository = new TypeOrmOutboxRepository(dataSource);
+const inboxRepository = new TypeOrmInboxRepository(dataSource);
+
+// Create publisher (implementation varies)
+const publisher = new GolevelupPublisher(/* config */);
+
+// Create services
+const outboxService = new OutboxService(outboxRepository, publisher, {
+  pollingInterval: 1000,
+  batchSize: 10,
+  maxRetries: 3,
+});
+
+const inboxService = new InboxService(inboxRepository, {
+  retentionDays: 7,
+});
+
+// Start polling
+outboxService.startPolling();
+inboxService.startCleanup();
+
+// Create outbox message within transaction
+await outboxService.withTransaction(async (txContext) => {
+  // Your business logic here
+  await userRepository.create({ name: 'John' }, txContext);
+
+  // Create outbox message in same transaction
+  await outboxService.createMessage({
+    aggregateType: 'User',
+    aggregateId: user.id,
+    eventType: 'user.created',
+    payload: { userId: user.id, name: user.name },
+  }, txContext);
+});
+
+// Register inbox handler
+inboxService.registerHandler('user.created', async (message) => {
+  console.log('Received user.created event:', message.payload);
+  // Process message
+});
+
+// Receive message (called by your message consumer)
+await inboxService.receiveMessage({
+  messageId: 'unique-message-id',
+  source: 'user-service',
+  eventType: 'user.created',
+  payload: { userId: '123', name: 'John' },
+});
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint
+npm run lint
+
+# Type check
+npm run typecheck
+
+# Format code
+npm run format
+```
+
+## Project Structure
+
+```
+inbox-outbox/
+├── packages/
+│   ├── core/                 # @event-forge/inbox-outbox-core
+│   ├── adapter-typeorm/      # @event-forge/inbox-outbox-typeorm
+│   ├── adapter-mongoose/     # @event-forge/inbox-outbox-mongoose
+│   ├── publisher-rabbitmq/   # @event-forge/inbox-outbox-rabbitmq
+│   └── nestjs/               # @event-forge/inbox-outbox-nestjs
+├── spec/
+│   ├── schemas/              # JSON Schema definitions
+│   └── migrations/           # Database migrations
+└── examples/                 # Usage examples
+```
+
+## Implementation Status
+
+### ✅ Completed
+
+- [x] Monorepo setup with Turborepo
+- [x] TypeScript, ESLint, Jest configuration
+- [x] Core package interfaces
+- [x] OutboxService with EventEmitter + polling
+- [x] InboxService with handler registration
+- [x] Decorators (@OutboxHandler, @InboxHandler)
+- [x] Error classes (ProcessingError, DuplicateMessageError)
+- [x] TypeORM entities with proper indexes
+- [x] TypeORM OutboxRepository with SKIP LOCKED
+- [x] TypeORM InboxRepository with deduplication
+
+### 🚧 In Progress
+
+- [ ] Mongoose adapter (schemas + repositories)
+- [ ] RabbitMQ publishers (Golevelup + Microservices)
+- [ ] NestJS module (forRoot + forRootAsync)
+
+### 📋 Planned
+
+- [ ] Unit tests (>80% coverage)
+- [ ] Integration tests with testcontainers
+- [ ] Python package (SQLAlchemy + Motor)
+- [ ] Migration scripts
+- [ ] API documentation
+- [ ] Usage examples
+
+## Key Features
+
+### Outbox Pattern
+
+- **Transactional Consistency**: Messages created in same transaction as business logic
+- **Guaranteed Delivery**: Messages persisted before publishing
+- **Retry Logic**: Exponential backoff with jitter
+- **Concurrent Processing**: Uses database locking (SKIP LOCKED)
+- **Immediate Processing**: EventEmitter triggers immediate publish
+- **Fallback Polling**: Cron-based polling as backup
+- **Cleanup**: Automatic cleanup of old messages
+
+### Inbox Pattern
+
+- **Deduplication**: Unique constraint prevents duplicate processing
+- **Handler Registration**: Type-safe event handlers
+- **Error Handling**: ProcessingError for permanent failures
+- **Cleanup**: Automatic cleanup of processed messages
+
+## Contributing
+
+This is an internal Event-Forge library. See CONTRIBUTING.md for guidelines.
+
+## License
+
+MIT

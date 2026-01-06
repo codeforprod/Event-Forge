@@ -1,0 +1,586 @@
+import { OutboxService, OutboxEvents } from '../outbox.service';
+import { IOutboxRepository } from '../../interfaces/outbox-repository.interface';
+import { IMessagePublisher } from '../../interfaces/message-publisher.interface';
+import { OutboxMessage } from '../../interfaces/outbox-message.interface';
+import { CreateOutboxMessageDto } from '../../interfaces/create-outbox-message.dto';
+import { ProcessingError } from '../../errors/processing.error';
+import { OutboxConfig } from '../../config/outbox.config';
+
+describe('OutboxService', () => {
+  let service: OutboxService;
+  let mockRepository: jest.Mocked<IOutboxRepository>;
+  let mockPublisher: jest.Mocked<IMessagePublisher>;
+
+  beforeEach(() => {
+    mockRepository = {
+      create: jest.fn(),
+      withTransaction: jest.fn(),
+      fetchAndLockPending: jest.fn(),
+      markPublished: jest.fn(),
+      markFailed: jest.fn(),
+      releaseStaleLocks: jest.fn(),
+      deleteOlderThan: jest.fn(),
+    } as jest.Mocked<IOutboxRepository>;
+
+    mockPublisher = {
+      publish: jest.fn(),
+    } as jest.Mocked<IMessagePublisher>;
+
+    service = new OutboxService(mockRepository, mockPublisher);
+  });
+
+  afterEach(() => {
+    service.stopPolling();
+    jest.clearAllMocks();
+  });
+
+  describe('createMessage', () => {
+    it('should create a message with default maxRetries', async () => {
+      const dto: CreateOutboxMessageDto = {
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+      };
+
+      const expectedMessage: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.create.mockResolvedValue(expectedMessage);
+
+      const result = await service.createMessage(dto);
+
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        {
+          ...dto,
+          maxRetries: 3,
+        },
+        undefined,
+      );
+      expect(result).toEqual(expectedMessage);
+    });
+
+    it('should create a message with custom maxRetries', async () => {
+      const dto: CreateOutboxMessageDto = {
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+        maxRetries: 5,
+      };
+
+      const expectedMessage: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.create.mockResolvedValue(expectedMessage);
+
+      const result = await service.createMessage(dto);
+
+      expect(mockRepository.create).toHaveBeenCalledWith(dto, undefined);
+      expect(result).toEqual(expectedMessage);
+    });
+
+    it('should create a message within a transaction context', async () => {
+      const dto: CreateOutboxMessageDto = {
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+      };
+
+      const transactionContext = { id: 'tx-1' };
+      const expectedMessage: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.create.mockResolvedValue(expectedMessage);
+
+      const result = await service.createMessage(dto, transactionContext);
+
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        {
+          ...dto,
+          maxRetries: 3,
+        },
+        transactionContext,
+      );
+      expect(result).toEqual(expectedMessage);
+    });
+
+    it('should emit MESSAGE_CREATED event when immediateProcessing is enabled', async () => {
+      const config: OutboxConfig = {
+        immediateProcessing: true,
+      };
+
+      service = new OutboxService(mockRepository, mockPublisher, config);
+
+      const dto: CreateOutboxMessageDto = {
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+      };
+
+      const expectedMessage: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John Doe' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.create.mockResolvedValue(expectedMessage);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.createMessage(dto);
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_CREATED, 'msg-1');
+    });
+  });
+
+  describe('withTransaction', () => {
+    it('should execute operation within a transaction', async () => {
+      const operation = jest.fn().mockResolvedValue('result');
+      mockRepository.withTransaction.mockImplementation((op) => op('tx-context'));
+
+      const result = await service.withTransaction(operation);
+
+      expect(mockRepository.withTransaction).toHaveBeenCalled();
+      expect(operation).toHaveBeenCalledWith('tx-context');
+      expect(result).toBe('result');
+    });
+  });
+
+  describe('startPolling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should emit POLLING_STARTED event', () => {
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startPolling();
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.POLLING_STARTED);
+    });
+
+    it('should start polling at configured interval', () => {
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      service.startPolling();
+
+      // Initial poll
+      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(1);
+
+      // Advance timers by polling interval (5000ms default)
+      jest.advanceTimersByTime(5000);
+
+      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not start multiple polling timers', () => {
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      service.startPolling();
+      service.startPolling();
+      service.startPolling();
+
+      // Should only poll once initially
+      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('stopPolling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should emit POLLING_STOPPED event', () => {
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      service.startPolling();
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.stopPolling();
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.POLLING_STOPPED);
+    });
+
+    it('should stop polling', () => {
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      service.startPolling();
+
+      const initialCallCount = mockRepository.releaseStaleLocks.mock.calls.length;
+
+      service.stopPolling();
+
+      jest.advanceTimersByTime(10000);
+
+      // No additional calls after stopping
+      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(initialCallCount);
+    });
+  });
+
+  describe('pollAndProcess', () => {
+    it('should release stale locks before fetching messages', async () => {
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+
+      await service.processMessage('msg-1');
+
+      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledWith(
+        expect.any(Date),
+      );
+      expect(mockRepository.fetchAndLockPending).toHaveBeenCalled();
+    });
+
+    it('should fetch and process pending messages', async () => {
+      const messages: OutboxMessage[] = [
+        {
+          id: 'msg-1',
+          eventType: 'user.created',
+          aggregateId: 'user-123',
+          payload: { name: 'John' },
+          status: 'pending',
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'msg-2',
+          eventType: 'order.placed',
+          aggregateId: 'order-456',
+          payload: { total: 100 },
+          status: 'pending',
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue(messages);
+      mockPublisher.publish.mockResolvedValue(undefined);
+      mockRepository.markPublished.mockResolvedValue(undefined);
+
+      await service.processMessage('msg-1');
+
+      expect(mockRepository.fetchAndLockPending).toHaveBeenCalledWith(10, undefined);
+      expect(mockPublisher.publish).toHaveBeenCalledTimes(2);
+      expect(mockRepository.markPublished).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not process concurrently', async () => {
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
+      );
+
+      // Start two concurrent processes
+      const promise1 = service.processMessage('msg-1');
+      const promise2 = service.processMessage('msg-2');
+
+      await Promise.all([promise1, promise2]);
+
+      // Should only call fetchAndLockPending once due to isProcessing flag
+      expect(mockRepository.fetchAndLockPending).toHaveBeenCalledTimes(1);
+    });
+
+    it('should emit error on processing failure but continue polling', async () => {
+      const error = new Error('Processing failed');
+      mockRepository.releaseStaleLocks.mockRejectedValue(error);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessage('msg-1');
+
+      expect(emitSpy).toHaveBeenCalledWith('error', error);
+    });
+  });
+
+  describe('publishMessage', () => {
+    it('should publish message and mark as published', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPublisher.publish.mockResolvedValue(undefined);
+      mockRepository.markPublished.mockResolvedValue(undefined);
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue([message]);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessage('msg-1');
+
+      expect(mockPublisher.publish).toHaveBeenCalledWith(message);
+      expect(mockRepository.markPublished).toHaveBeenCalledWith('msg-1');
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_PUBLISHED, message);
+    });
+
+    it('should handle publish errors with retry', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: 'pending',
+        retryCount: 1,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const error = new Error('Network error');
+      mockPublisher.publish.mockRejectedValue(error);
+      mockRepository.markFailed.mockResolvedValue(undefined);
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue([message]);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessage('msg-1');
+
+      expect(mockRepository.markFailed).toHaveBeenCalledWith(
+        'msg-1',
+        'Network error',
+        false,
+      );
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_FAILED, {
+        message,
+        error,
+        permanent: false,
+      });
+    });
+
+    it('should mark as permanently failed when max retries exceeded', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: 'pending',
+        retryCount: 3,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const error = new Error('Network error');
+      mockPublisher.publish.mockRejectedValue(error);
+      mockRepository.markFailed.mockResolvedValue(undefined);
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue([message]);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessage('msg-1');
+
+      expect(mockRepository.markFailed).toHaveBeenCalledWith(
+        'msg-1',
+        'Network error',
+        true,
+      );
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_FAILED, {
+        message,
+        error,
+        permanent: true,
+      });
+    });
+
+    it('should mark as permanently failed for ProcessingError', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: 'pending',
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const error = new ProcessingError('Invalid payload format');
+      mockPublisher.publish.mockRejectedValue(error);
+      mockRepository.markFailed.mockResolvedValue(undefined);
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+      mockRepository.fetchAndLockPending.mockResolvedValue([message]);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessage('msg-1');
+
+      expect(mockRepository.markFailed).toHaveBeenCalledWith(
+        'msg-1',
+        'Invalid payload format',
+        true,
+      );
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_FAILED, {
+        message,
+        error,
+        permanent: true,
+      });
+    });
+  });
+
+  describe('cleanup', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should delete old published messages', async () => {
+      mockRepository.deleteOlderThan.mockResolvedValue(5);
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      service.startPolling();
+
+      // Wait for initial cleanup
+      await jest.runAllTimersAsync();
+
+      expect(mockRepository.deleteOlderThan).toHaveBeenCalledWith(
+        expect.any(Date),
+      );
+    });
+
+    it('should emit cleanup event with deleted count', async () => {
+      mockRepository.deleteOlderThan.mockResolvedValue(10);
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startPolling();
+
+      // Wait for initial cleanup
+      await jest.runAllTimersAsync();
+
+      expect(emitSpy).toHaveBeenCalledWith('cleanup', {
+        deleted: 10,
+        cutoffDate: expect.any(Date),
+      });
+    });
+
+    it('should not emit cleanup event when no messages deleted', async () => {
+      mockRepository.deleteOlderThan.mockResolvedValue(0);
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startPolling();
+
+      // Wait for initial cleanup
+      await jest.runAllTimersAsync();
+
+      // Should not emit cleanup event
+      expect(emitSpy).not.toHaveBeenCalledWith('cleanup', expect.anything());
+    });
+
+    it('should handle cleanup errors gracefully', async () => {
+      const error = new Error('Cleanup failed');
+      mockRepository.deleteOlderThan.mockRejectedValue(error);
+      mockRepository.fetchAndLockPending.mockResolvedValue([]);
+      mockRepository.releaseStaleLocks.mockResolvedValue(undefined);
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startPolling();
+
+      // Wait for initial cleanup
+      await jest.runAllTimersAsync();
+
+      expect(emitSpy).toHaveBeenCalledWith('error', error);
+    });
+  });
+
+  describe('configuration', () => {
+    it('should use custom configuration', () => {
+      const config: OutboxConfig = {
+        pollingInterval: 10000,
+        batchSize: 50,
+        maxRetries: 5,
+        lockTimeoutSeconds: 120,
+        cleanupInterval: 7200000,
+        retentionDays: 14,
+        workerId: 'worker-1',
+        immediateProcessing: true,
+      };
+
+      service = new OutboxService(mockRepository, mockPublisher, config);
+
+      // Configuration is applied (tested implicitly through behavior)
+      expect(service).toBeDefined();
+    });
+
+    it('should merge custom config with defaults', () => {
+      const config: OutboxConfig = {
+        pollingInterval: 10000,
+      };
+
+      service = new OutboxService(mockRepository, mockPublisher, config);
+
+      expect(service).toBeDefined();
+    });
+  });
+});

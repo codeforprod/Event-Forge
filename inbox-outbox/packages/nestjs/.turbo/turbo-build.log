@@ -1,0 +1,4 @@
+
+> @event-forge/inbox-outbox-nestjs@1.0.0 build
+> tsc -b
+

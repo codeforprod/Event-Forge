@@ -1,0 +1,18 @@
+
+> @event-forge/inbox-outbox-nestjs@1.0.0 test
+> jest
+
+● Validation Error:
+
+  Directory /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/nestjs/test in the roots[1] option was not found.
+
+  Configuration Documentation:
+  https://jestjs.io/docs/configuration
+
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/nestjs
+npm error workspace @event-forge/inbox-outbox-nestjs@1.0.0
+npm error location /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/nestjs
+npm error command failed
+npm error command sh -c jest

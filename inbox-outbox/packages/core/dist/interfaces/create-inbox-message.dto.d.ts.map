@@ -1,0 +1,1 @@
+{"version":3,"file":"create-inbox-message.dto.d.ts","sourceRoot":"","sources":["../../src/interfaces/create-inbox-message.dto.ts"],"names":[],"mappings":"AAGA,MAAM,WAAW,qBAAqB;IAEpC,SAAS,EAAE,MAAM,CAAC;IAGlB,MAAM,EAAE,MAAM,CAAC;IAGf,SAAS,EAAE,MAAM,CAAC;IAGlB,OAAO,EAAE,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,CAAC;CAClC"}
