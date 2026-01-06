@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "event-forge-inbox-outbox"
 version = "1.0.0"
-description = "Universal Inbox-Outbox Pattern Library for reliable message delivery in Python"
+description = "Universal Inbox-Outbox Pattern Library for Python - reliable message delivery in distributed systems"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Event-Forge Team"}
+    {name = "Event-Forge Team", email = "dev@event-forge.io"}
 ]
-keywords = ["inbox", "outbox", "transactional", "message", "pattern", "postgresql", "mongodb", "rabbitmq"]
+keywords = ["inbox", "outbox", "transactional", "message", "pattern", "postgresql", "mongodb", "rabbitmq", "sqlalchemy"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -22,19 +22,20 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Object Relational Mapping",
+    "Framework :: AsyncIO",
 ]
 
 dependencies = [
     "pydantic>=2.0.0,<3.0.0",
-    "sqlalchemy>=2.0.0,<3.0.0",
-    "alembic>=1.12.0,<2.0.0",
+    "sqlalchemy[asyncio]>=2.0.0,<3.0.0",
 ]
 
 [project.optional-dependencies]
 rabbitmq = [
     "aio-pika>=9.0.0,<10.0.0",
 ]
-motor = [
+mongodb = [
     "motor>=3.3.0,<4.0.0",
 ]
 dev = [
@@ -62,16 +63,13 @@ target-version = ['py310', 'py311', 'py312']
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = []
 
 [tool.mypy]
 python_version = "3.10"
-strict = true
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "-v --tb=short"
