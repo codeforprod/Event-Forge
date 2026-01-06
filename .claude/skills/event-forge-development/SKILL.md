@@ -43,7 +43,7 @@ packages/
 
 ### IOutboxRepository
 
-Implement for storing outgoing messages with transactional guarantees:
+Stores outgoing messages with transactional guarantees:
 
 ```typescript
 interface IOutboxRepository {
@@ -60,7 +60,7 @@ interface IOutboxRepository {
 
 ### IInboxRepository
 
-Implement for storing and deduplicating incoming messages:
+Stores and deduplicates incoming messages:
 
 ```typescript
 interface IInboxRepository {
@@ -75,7 +75,7 @@ interface IInboxRepository {
 
 ### IMessagePublisher
 
-Implement for publishing messages to message brokers:
+Publishes messages to message brokers:
 
 ```typescript
 interface IMessagePublisher {
@@ -94,118 +94,12 @@ interface IMessagePublisher {
 6. Mark published or retry with exponential backoff
 ```
 
-## Creating a TypeORM Adapter
+## Message Status Flow
 
-### Entity Definition
-
-```typescript
-// packages/adapter-typeorm/entities/outbox-message.entity.ts
-@Entity('outbox_messages')
-@Index(['status', 'scheduledAt'])
-@Index(['aggregateType', 'aggregateId'])
-export class OutboxMessageEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ name: 'aggregate_type', length: 100 })
-  aggregateType: string;
-
-  @Column({ name: 'aggregate_id', length: 255 })
-  aggregateId: string;
-
-  @Column({ name: 'event_type', length: 100 })
-  @Index()
-  eventType: string;
-
-  @Column('jsonb')
-  payload: Record<string, unknown>;
-
-  @Column({ length: 30, default: 'pending' })
-  status: string;
-
-  @Column({ name: 'retry_count', default: 0 })
-  retryCount: number;
-
-  @Column({ name: 'max_retries', default: 5 })
-  maxRetries: number;
-
-  @Column({ name: 'locked_by', length: 100, nullable: true })
-  lockedBy: string;
-
-  @Column({ name: 'locked_at', type: 'timestamptz', nullable: true })
-  lockedAt: Date;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-}
 ```
-
-### Repository Implementation
-
-Use `SKIP LOCKED` for PostgreSQL concurrent access:
-
-```typescript
-async fetchAndLockPending(limit: number, lockerId: string): Promise<OutboxMessage[]> {
-  const result = await this.dataSource.query(`
-    UPDATE outbox_messages
-    SET locked_by = $1, locked_at = $2, status = 'processing'
-    WHERE id IN (
-      SELECT id FROM outbox_messages
-      WHERE status = 'pending'
-        AND (scheduled_at IS NULL OR scheduled_at <= $2)
-        AND (locked_at IS NULL OR locked_at < $3)
-      ORDER BY created_at
-      LIMIT $4
-      FOR UPDATE SKIP LOCKED
-    )
-    RETURNING *
-  `, [lockerId, now, lockTimeout, limit]);
-  return result;
-}
-```
-
-## Creating a Mongoose Adapter
-
-### Schema Definition
-
-```typescript
-@Schema({ timestamps: true, collection: 'outbox_messages' })
-export class OutboxMessageDocument extends Document {
-  @Prop({ required: true })
-  aggregateType: string;
-
-  @Prop({ required: true, index: true })
-  eventType: string;
-
-  @Prop({ type: Object, required: true })
-  payload: Record<string, unknown>;
-
-  @Prop({ default: 'pending', index: true })
-  status: string;
-
-  @Prop({ default: false, index: true })
-  isLocked: boolean;
-}
-```
-
-### Repository Implementation
-
-Use `findOneAndUpdate` for atomic locking:
-
-```typescript
-async fetchAndLockPending(limit: number, lockerId: string): Promise<OutboxMessage[]> {
-  const messages: OutboxMessage[] = [];
-  for (let i = 0; i < limit; i++) {
-    const doc = await this.model.findOneAndUpdate(
-      { status: 'pending', isLocked: false },
-      { $set: { isLocked: true, lockedBy: lockerId, status: 'processing' } },
-      { sort: { retryCount: 1, createdAt: 1 }, new: true },
-    );
-    if (!doc) break;
-    messages.push(this.toOutboxMessage(doc));
-  }
-  return messages;
-}
+pending → processing → published
+                   └→ failed → pending (retry)
+                            └→ permanently_failed
 ```
 
 ## NestJS Module Integration
@@ -276,33 +170,17 @@ export class OrderService {
 
 ## Retry Strategy
 
-Implement exponential backoff with jitter:
+Exponential backoff with jitter: 5s, 10s, 20s, 40s, 80s
 
 ```typescript
 private calculateBackoff(retryCount: number): number {
-  const base = 5000;  // 5 seconds
-  const delay = base * Math.pow(2, retryCount);  // 5s, 10s, 20s, 40s, 80s
+  const base = 5000;
+  const delay = base * Math.pow(2, retryCount);
   const jitter = Math.random() * 1000;
   return delay + jitter;
 }
 ```
 
-## Message Status Flow
+## Reference Documentation
 
-```
-pending → processing → published
-                   └→ failed → pending (retry)
-                            └→ permanently_failed
-```
-
-## Testing Guidelines
-
-- Use testcontainers for integration tests with PostgreSQL, MongoDB, RabbitMQ
-- Unit test core services with mocked repositories
-- Test transactional boundaries ensure atomicity
-- Verify lock acquisition and release
-- Test retry logic with simulated failures
-
-## Integration Reference
-
-See [references/interfaces.md](references/interfaces.md) for complete interface definitions.
+- [Complete Interface Definitions](references/interfaces.md) - Full TypeScript interfaces and types
