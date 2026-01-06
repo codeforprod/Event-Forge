@@ -33,10 +33,10 @@ export class OutboxMessageEntity implements OutboxMessage {
   @Column({ type: 'varchar', length: 255 })
   eventType: string;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   payload: Record<string, unknown>;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata?: Record<string, unknown>;
 
   @Column({
