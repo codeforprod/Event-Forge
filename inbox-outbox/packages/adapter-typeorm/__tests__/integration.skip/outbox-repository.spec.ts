@@ -32,6 +32,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('create', () => {
     it('should create a new outbox message', async () => {
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-123',
         payload: { name: 'John Doe', email: 'john@example.com' },
@@ -51,6 +52,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should create message with custom maxRetries', async () => {
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'order.placed',
         aggregateId: 'order-456',
         payload: { total: 100 },
@@ -64,6 +66,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should create message with metadata', async () => {
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'payment.processed',
         aggregateId: 'payment-789',
         payload: { amount: 50.99 },
@@ -85,6 +88,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       const scheduledAt = new Date(Date.now() + 3600000); // 1 hour from now
 
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'reminder.send',
         aggregateId: 'user-123',
         payload: { message: 'Time for your appointment' },
@@ -98,6 +102,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should create message within transaction', async () => {
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-123',
         payload: { name: 'John Doe' },
@@ -117,6 +122,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should rollback transaction on error', async () => {
       const dto: CreateOutboxMessageDto = {
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-123',
         payload: { name: 'John Doe' },
@@ -138,11 +144,13 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('fetchAndLockPending', () => {
     it('should fetch pending messages', async () => {
       await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
       });
       await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-2',
         payload: {},
@@ -159,7 +167,8 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
     it('should respect batch size limit', async () => {
       for (let i = 0; i < 5; i++) {
         await repository.create({
-          eventType: 'user.created',
+          aggregateType: 'User',
+        eventType: 'user.created',
           aggregateId: `user-${i}`,
           payload: {},
         });
@@ -172,6 +181,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should fetch messages in FIFO order', async () => {
       const msg1 = await repository.create({
+        aggregateType: 'User',
         eventType: 'event.1',
         aggregateId: 'agg-1',
         payload: {},
@@ -181,6 +191,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       const msg2 = await repository.create({
+        aggregateType: 'User',
         eventType: 'event.2',
         aggregateId: 'agg-2',
         payload: {},
@@ -194,6 +205,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should not fetch locked messages', async () => {
       await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -210,6 +222,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should fetch failed messages for retry', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -225,6 +238,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should not fetch permanently failed messages', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -241,6 +255,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       const futureDate = new Date(Date.now() + 3600000); // 1 hour from now
 
       await repository.create({
+        aggregateType: 'User',
         eventType: 'reminder.send',
         aggregateId: 'user-1',
         payload: {},
@@ -256,6 +271,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       const pastDate = new Date(Date.now() - 1000); // 1 second ago
 
       await repository.create({
+        aggregateType: 'User',
         eventType: 'reminder.send',
         aggregateId: 'user-1',
         payload: {},
@@ -271,7 +287,8 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       // Create 10 messages
       for (let i = 0; i < 10; i++) {
         await repository.create({
-          eventType: 'user.created',
+          aggregateType: 'User',
+        eventType: 'user.created',
           aggregateId: `user-${i}`,
           payload: {},
         });
@@ -302,6 +319,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('markPublished', () => {
     it('should mark message as published', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -322,6 +340,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('markFailed', () => {
     it('should mark message as failed with retry', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -342,6 +361,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should mark message as permanently failed', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -360,6 +380,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should increment retry count', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -380,6 +401,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('releaseStaleLocks', () => {
     it('should release stale locks', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -410,6 +432,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should not release recent locks', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -436,6 +459,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
   describe('deleteOlderThan', () => {
     it('should delete old published messages', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -460,6 +484,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should not delete pending messages', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -482,6 +507,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
     it('should not delete recent published messages', async () => {
       const message = await repository.create({
+        aggregateType: 'User',
         eventType: 'user.created',
         aggregateId: 'user-1',
         payload: {},
@@ -505,6 +531,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
       const result = await repository.withTransaction(async (txContext) => {
         const msg1 = await repository.create(
           {
+            aggregateType: 'User',
             eventType: 'user.created',
             aggregateId: 'user-1',
             payload: {},
@@ -514,6 +541,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
         const msg2 = await repository.create(
           {
+            aggregateType: 'User',
             eventType: 'user.created',
             aggregateId: 'user-2',
             payload: {},
@@ -536,6 +564,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
         repository.withTransaction(async (txContext) => {
           await repository.create(
             {
+              aggregateType: 'User',
               eventType: 'user.created',
               aggregateId: 'user-1',
               payload: {},
@@ -545,6 +574,7 @@ describe('TypeOrmOutboxRepository Integration Tests', () => {
 
           await repository.create(
             {
+              aggregateType: 'User',
               eventType: 'user.created',
               aggregateId: 'user-2',
               payload: {},

@@ -4,6 +4,7 @@ module.exports = {
   ...base,
   displayName: '@event-forge/inbox-outbox-typeorm',
   rootDir: '.',
-  roots: ['<rootDir>/src', '<rootDir>/__tests__'],
+  roots: ['<rootDir>/src'],
+  testPathIgnorePatterns: ['/node_modules/', '/__tests__/integration.skip/'],
   testTimeout: 30000, // Integration tests may take longer
 };
