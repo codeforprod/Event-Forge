@@ -72,6 +72,9 @@ class OutboxService extends events_1.EventEmitter {
             const lockTimeout = new Date(Date.now() - this.config.lockTimeoutSeconds * 1000);
             await this.repository.releaseStaleLocks(lockTimeout);
             const messages = await this.repository.fetchAndLockPending(this.config.batchSize, this.config.workerId);
+            if (!messages || messages.length === 0) {
+                return;
+            }
             await Promise.all(messages.map((message) => this.publishMessage(message)));
         }
         catch (error) {

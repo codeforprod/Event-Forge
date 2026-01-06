@@ -1,4 +1,3 @@
-import { ModuleMetadata, Type } from '@nestjs/common';
 import {
   IOutboxRepository,
   IInboxRepository,
@@ -6,6 +5,7 @@ import {
   OutboxConfig,
   InboxConfig,
 } from '@event-forge/inbox-outbox-core';
+import { ModuleMetadata, Type } from '@nestjs/common';
 
 /**
  * Options for configuring the Inbox-Outbox module

@@ -1,5 +1,5 @@
-import { ModuleMetadata, Type } from '@nestjs/common';
 import { IOutboxRepository, IInboxRepository, IMessagePublisher, OutboxConfig, InboxConfig } from '@event-forge/inbox-outbox-core';
+import { ModuleMetadata, Type } from '@nestjs/common';
 export interface InboxOutboxModuleOptions {
     outbox?: {
         repository: Type<IOutboxRepository> | IOutboxRepository;

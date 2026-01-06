@@ -33,6 +33,7 @@ export interface OutboxHandlerOptions {
  */
 export function OutboxHandler(options: OutboxHandlerOptions): MethodDecorator {
   return (_target: object, _propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     (Reflect as any).defineMetadata(OUTBOX_HANDLER_METADATA, options, descriptor.value as object);
     return descriptor;
   };

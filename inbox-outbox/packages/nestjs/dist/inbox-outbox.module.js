@@ -8,8 +8,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var InboxOutboxModule_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InboxOutboxModule = void 0;
-const common_1 = require("@nestjs/common");
 const inbox_outbox_core_1 = require("@event-forge/inbox-outbox-core");
+const common_1 = require("@nestjs/common");
 const inbox_outbox_constants_1 = require("./inbox-outbox.constants");
 let InboxOutboxModule = InboxOutboxModule_1 = class InboxOutboxModule {
     static forRoot(options) {

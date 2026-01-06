@@ -1,4 +1,4 @@
 
-> @event-forge/inbox-outbox-typeorm@1.0.0 build
+> @event-forge/inbox-outbox-typeorm@1.0.0 build /private/var/folders/3s/f088p7sn0w583k6py57jw29h0000gn/T/vibe-kanban/worktrees/4142-create-universal/Event-Forge/inbox-outbox/packages/adapter-typeorm
 > tsc -b
 

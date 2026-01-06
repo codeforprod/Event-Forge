@@ -1,4 +1,3 @@
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
 import {
   OutboxService,
   InboxService,
@@ -6,11 +5,8 @@ import {
   IInboxRepository,
   IMessagePublisher,
 } from '@event-forge/inbox-outbox-core';
-import {
-  InboxOutboxModuleOptions,
-  InboxOutboxModuleAsyncOptions,
-  InboxOutboxModuleOptionsFactory,
-} from './inbox-outbox.interfaces';
+import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
+
 import {
   INBOX_OUTBOX_OPTIONS,
   OUTBOX_REPOSITORY,
@@ -19,6 +15,11 @@ import {
   OUTBOX_SERVICE,
   INBOX_SERVICE,
 } from './inbox-outbox.constants';
+import {
+  InboxOutboxModuleOptions,
+  InboxOutboxModuleAsyncOptions,
+  InboxOutboxModuleOptionsFactory,
+} from './inbox-outbox.interfaces';
 
 /**
  * NestJS Module for Inbox-Outbox Pattern
@@ -75,7 +76,7 @@ export class InboxOutboxModule {
       if (this.isType(options.outbox.repository)) {
         providers.push({
           provide: OUTBOX_REPOSITORY,
-          useClass: options.outbox.repository as Type<IOutboxRepository>,
+          useClass: options.outbox.repository,
         });
       } else {
         providers.push({
@@ -90,7 +91,7 @@ export class InboxOutboxModule {
       if (this.isType(options.inbox.repository)) {
         providers.push({
           provide: INBOX_REPOSITORY,
-          useClass: options.inbox.repository as Type<IInboxRepository>,
+          useClass: options.inbox.repository,
         });
       } else {
         providers.push({
@@ -105,7 +106,7 @@ export class InboxOutboxModule {
       if (this.isType(options.publisher)) {
         providers.push({
           provide: MESSAGE_PUBLISHER,
-          useClass: options.publisher as Type<IMessagePublisher>,
+          useClass: options.publisher,
         });
       } else {
         providers.push({
@@ -212,7 +213,7 @@ export class InboxOutboxModule {
           }
 
           if (this.isType(options.outbox.repository)) {
-            const RepositoryClass = options.outbox.repository as Type<IOutboxRepository>;
+            const RepositoryClass = options.outbox.repository;
             return new RepositoryClass();
           }
 
@@ -228,7 +229,7 @@ export class InboxOutboxModule {
           }
 
           if (this.isType(options.inbox.repository)) {
-            const RepositoryClass = options.inbox.repository as Type<IInboxRepository>;
+            const RepositoryClass = options.inbox.repository;
             return new RepositoryClass();
           }
 
@@ -244,7 +245,7 @@ export class InboxOutboxModule {
           }
 
           if (this.isType(options.publisher)) {
-            const PublisherClass = options.publisher as Type<IMessagePublisher>;
+            const PublisherClass = options.publisher;
             return new PublisherClass();
           }
 
