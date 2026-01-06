@@ -272,6 +272,45 @@ inbox-outbox/
 - **Error Handling**: ProcessingError for permanent failures
 - **Cleanup**: Automatic cleanup of processed messages
 
+## Publishing
+
+### NPM Packages
+
+Publishing happens automatically via GitHub Actions when you push a version tag:
+
+```bash
+# Bump version in all package.json files
+pnpm version patch  # or minor, major
+
+# Push with tags
+git push origin main --follow-tags
+```
+
+The CI/CD pipeline will:
+1. Build all packages
+2. Run tests
+3. Publish to NPM registry
+
+**Required Secret**: `NPM_TOKEN` must be configured in GitHub repository settings.
+
+### Manual Publishing
+
+If you need to publish manually:
+
+```bash
+# Build all packages
+pnpm run build
+
+# Publish each package
+cd packages/core && pnpm publish --access public
+cd ../adapter-typeorm && pnpm publish --access public
+cd ../adapter-mongoose && pnpm publish --access public
+cd ../publisher-rabbitmq && pnpm publish --access public
+cd ../nestjs && pnpm publish --access public
+```
+
+**Note**: Login to npm first with `npm login`
+
 ## Contributing
 
 This is an internal Event-Forge library. See CONTRIBUTING.md for guidelines.

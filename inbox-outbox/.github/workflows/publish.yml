@@ -1,0 +1,48 @@
+name: Publish Packages
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Publish to npm
+        run: |
+          cd packages/core && pnpm publish --access public --no-git-checks
+          cd ../adapter-typeorm && pnpm publish --access public --no-git-checks
+          cd ../adapter-mongoose && pnpm publish --access public --no-git-checks
+          cd ../publisher-rabbitmq && pnpm publish --access public --no-git-checks
+          cd ../nestjs && pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
