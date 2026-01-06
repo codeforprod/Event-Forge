@@ -1,1 +1,0 @@
-{"version":3,"file":"outbox-message.interface.js","sourceRoot":"","sources":["../../src/interfaces/outbox-message.interface.ts"],"names":[],"mappings":";;;AAsDA,IAAY,mBAMX;AAND,WAAY,mBAAmB;IAC7B,0CAAmB,CAAA;IACnB,gDAAyB,CAAA;IACzB,8CAAuB,CAAA;IACvB,wCAAiB,CAAA;IACjB,gEAAyC,CAAA;AAC3C,CAAC,EANW,mBAAmB,mCAAnB,mBAAmB,QAM9B"}

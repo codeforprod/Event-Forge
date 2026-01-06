@@ -1,1 +1,0 @@
-{"version":3,"file":"inbox-handler.decorator.d.ts","sourceRoot":"","sources":["../../src/decorators/inbox-handler.decorator.ts"],"names":[],"mappings":"AAAA,OAAO,kBAAkB,CAAC;AAK1B,eAAO,MAAM,sBAAsB,+BAA+B,CAAC;AAKnE,MAAM,WAAW,mBAAmB;IAElC,SAAS,EAAE,MAAM,CAAC;IAGlB,MAAM,CAAC,EAAE,MAAM,CAAC;CACjB;AAcD,wBAAgB,YAAY,CAAC,OAAO,EAAE,mBAAmB,GAAG,eAAe,CAM1E"}
