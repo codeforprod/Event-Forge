@@ -2,12 +2,202 @@
   "version": "1.0.0",
   "service": "event-forge",
   "description": "Skillbook for Event-Forge project - patterns, learnings, and best practices",
-  "skills": [],
-  "patterns": [],
-  "anti_patterns": [],
+  "skills": [
+    {
+      "id": "changesets-monorepo-setup",
+      "category": "best-practices",
+      "title": "Setting up Changesets for monorepo package publishing",
+      "problem": "Need automated version management and publishing for multiple NPM packages in a monorepo",
+      "solution": "Use Changesets with linked configuration to synchronize versions across all packages",
+      "implementation": {
+        "steps": [
+          "Install @changesets/cli as dev dependency",
+          "Run 'pnpm changeset init' to create .changeset directory",
+          "Configure .changeset/config.json with 'linked' array containing package patterns",
+          "Set 'access' to 'public' for NPM publishing",
+          "Add scripts: changeset, version-packages, ci:publish, release"
+        ],
+        "config_example": {
+          "linked": [["@event-forge/inbox-outbox-*"]],
+          "access": "public",
+          "baseBranch": "main"
+        }
+      },
+      "benefits": [
+        "Decouples versioning from git commits",
+        "Auto-generates CHANGELOG",
+        "Creates version bump PRs automatically",
+        "Handles monorepo inter-package dependencies"
+      ],
+      "tags": ["changesets", "monorepo", "publishing", "npm", "versioning"]
+    },
+    {
+      "id": "pypi-trusted-publishers",
+      "category": "best-practices",
+      "title": "Using PyPI Trusted Publishers for secure publishing",
+      "problem": "Need secure PyPI publishing without manual API tokens",
+      "solution": "Use PyPI Trusted Publishers with GitHub Actions OIDC",
+      "implementation": {
+        "steps": [
+          "Configure PyPI project with Trusted Publisher settings (owner, repo, workflow, environment)",
+          "Use pypa/gh-action-pypi-publish@release/v1 action",
+          "Set permissions: id-token: write, contents: read",
+          "Use GitHub environment 'pypi' for protection",
+          "Enable attestations: true for PEP 740 compliance"
+        ],
+        "github_workflow": {
+          "environment": {
+            "name": "pypi",
+            "url": "https://pypi.org/p/{package-name}"
+          },
+          "permissions": {
+            "id-token": "write",
+            "contents": "read"
+          }
+        }
+      },
+      "benefits": [
+        "No manual API tokens to manage",
+        "Automatic package attestations (PEP 740)",
+        "More secure than token-based auth",
+        "Integrated with GitHub Actions"
+      ],
+      "tags": ["pypi", "publishing", "security", "oidc", "trusted-publishers"]
+    },
+    {
+      "id": "npm-python-version-sync",
+      "category": "automation",
+      "title": "Synchronizing NPM and Python package versions",
+      "problem": "Monorepo with both NPM and Python packages needs synchronized versions",
+      "solution": "Create sync script that updates Python pyproject.toml from NPM package.json",
+      "implementation": {
+        "script": "scripts/sync-python-version.js",
+        "approach": "Read version from packages/core/package.json, update pyproject.toml using regex replacement",
+        "integration": "Run as GitHub Actions step before publishing Python package",
+        "script_example": "fs.readFileSync + regex replace /^version\\s*=\\s*\"[^\"]*\"/m"
+      },
+      "benefits": [
+        "Single source of truth for versions (NPM core package)",
+        "Automated - no manual version updates needed",
+        "Runs in CI pipeline before publishing"
+      ],
+      "tags": ["version-sync", "npm", "python", "automation", "monorepo"]
+    },
+    {
+      "id": "changesets-github-actions-workflow",
+      "category": "ci-cd",
+      "title": "Implementing Changesets with GitHub Actions",
+      "problem": "Need automated workflow to create version PRs and publish packages",
+      "solution": "Use changesets/action@v1 in GitHub Actions workflow",
+      "implementation": {
+        "workflow_structure": {
+          "trigger": "push to main branch",
+          "concurrency": "prevent parallel executions",
+          "job_outputs": "published, publishedPackages for conditional downstream jobs",
+          "steps": [
+            "Checkout with fetch-depth: 0",
+            "Setup pnpm and Node.js",
+            "Build and test",
+            "Run changesets action with publish command"
+          ]
+        },
+        "changesets_action_config": {
+          "commit": "chore(release): version packages",
+          "title": "chore(release): version packages",
+          "publish": "pnpm ci:publish"
+        }
+      },
+      "workflow": [
+        "Developer creates changeset locally",
+        "Changes merged to main",
+        "Workflow creates 'Version Packages' PR (if changesets exist)",
+        "Merging version PR triggers publish job",
+        "Published packages trigger downstream jobs (e.g., Python publishing)"
+      ],
+      "tags": ["changesets", "github-actions", "ci-cd", "automation", "publishing"]
+    },
+    {
+      "id": "conditional-pypi-publishing",
+      "category": "ci-cd",
+      "title": "Conditional PyPI publishing based on NPM release",
+      "problem": "Python package should only publish when NPM packages are published",
+      "solution": "Use job outputs and conditional execution in GitHub Actions",
+      "implementation": {
+        "pattern": "needs: release, if: needs.release.outputs.published == 'true'",
+        "job_outputs": "Set outputs in NPM job from changesets action",
+        "conditional_job": "PyPI job depends on NPM job and checks published output"
+      },
+      "benefits": [
+        "Prevents unnecessary PyPI publishes",
+        "Ensures version synchronization",
+        "Cleaner workflow execution"
+      ],
+      "tags": ["github-actions", "conditional-execution", "pypi", "npm", "workflow"]
+    }
+  ],
+  "patterns": [
+    {
+      "id": "monorepo-publishing-architecture",
+      "category": "architecture",
+      "name": "Monorepo multi-platform publishing architecture",
+      "context": "Publishing packages to multiple registries (NPM + PyPI) from single monorepo",
+      "pattern": "Use Changesets for NPM version management, sync script for Python versions, GitHub Actions for automation",
+      "components": [
+        "Changesets - NPM version management and changelog",
+        "Version sync script - Synchronize NPM to Python",
+        "GitHub Actions workflows - Automation (release.yml for publishing, ci.yml for validation)",
+        "Trusted Publishers - Secure PyPI publishing without tokens"
+      ],
+      "trade_offs": {
+        "pros": [
+          "Single source of truth for versions",
+          "Automated version bumps and publishing",
+          "Secure (no manual tokens for PyPI)",
+          "Clear developer workflow"
+        ],
+        "cons": [
+          "Requires external setup (NPM token, PyPI trusted publisher config)",
+          "Learning curve for Changesets workflow",
+          "Two-step process (version PR, then publish)"
+        ]
+      },
+      "when_to_use": "Multi-platform monorepos with frequent releases",
+      "when_to_avoid": "Single package projects or infrequent manual releases"
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "manual-version-updates",
+      "name": "Manual version updates in monorepos",
+      "problem": "Manually updating version numbers in multiple package.json files",
+      "why_bad": [
+        "Error-prone (easy to miss packages)",
+        "Time-consuming",
+        "No automatic changelog",
+        "Inter-package dependency versions can get out of sync"
+      ],
+      "better_approach": "Use Changesets with linked configuration for automatic version management",
+      "tags": ["versioning", "monorepo", "manual-work"]
+    },
+    {
+      "id": "pypi-api-tokens-in-ci",
+      "name": "Using PyPI API tokens in GitHub Actions",
+      "problem": "Storing PyPI API tokens as GitHub secrets",
+      "why_bad": [
+        "Security risk (tokens can leak)",
+        "Manual token rotation required",
+        "No automatic package attestations",
+        "Less secure than OIDC"
+      ],
+      "better_approach": "Use PyPI Trusted Publishers with GitHub Actions OIDC",
+      "tags": ["security", "pypi", "tokens", "oidc"]
+    }
+  ],
   "metadata": {
-    "total_skills": 0,
-    "last_updated": null,
+    "total_skills": 5,
+    "total_patterns": 1,
+    "total_anti_patterns": 2,
+    "last_updated": "2026-01-07T16:30:00Z",
     "created_at": "2026-01-05T00:00:00Z"
   }
 }
