@@ -7,7 +7,7 @@ description: Implements MongoDB adapter for Event-Forge using Mongoose with find
 
 MongoDB adapter implementation using Mongoose for the Transactional Inbox-Outbox pattern.
 
-## Package: @event-forge/inbox-outbox-mongoose
+## Package: @callairis/event-forge-mongoose
 
 ## Schema Definitions
 
@@ -132,7 +132,7 @@ import {
   IOutboxRepository,
   OutboxMessage,
   CreateOutboxMessageDto,
-} from '@event-forge/inbox-outbox-core';
+} from '@callairis/event-forge-core';
 import { OutboxMessageDocument } from '../schemas/outbox-message.schema';
 
 @Injectable()
@@ -452,7 +452,7 @@ import {
   OutboxMessageSchema,
   InboxMessageDocument,
   InboxMessageSchema,
-} from '@event-forge/inbox-outbox-mongoose';
+} from '@callairis/event-forge-mongoose';
 
 @Module({
   imports: [

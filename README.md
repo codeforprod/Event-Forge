@@ -18,17 +18,17 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 
 | Package | Description | NPM |
 |---------|-------------|-----|
-| `@event-forge/inbox-outbox-core` | Core services and interfaces | [![npm](https://img.shields.io/npm/v/@event-forge/inbox-outbox-core.svg)](https://www.npmjs.com/package/@event-forge/inbox-outbox-core) |
-| `@event-forge/inbox-outbox-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@event-forge/inbox-outbox-typeorm.svg)](https://www.npmjs.com/package/@event-forge/inbox-outbox-typeorm) |
-| `@event-forge/inbox-outbox-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@event-forge/inbox-outbox-mongoose.svg)](https://www.npmjs.com/package/@event-forge/inbox-outbox-mongoose) |
-| `@event-forge/inbox-outbox-rabbitmq` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@event-forge/inbox-outbox-rabbitmq.svg)](https://www.npmjs.com/package/@event-forge/inbox-outbox-rabbitmq) |
-| `@event-forge/inbox-outbox-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@event-forge/inbox-outbox-nestjs.svg)](https://www.npmjs.com/package/@event-forge/inbox-outbox-nestjs) |
+| `@callairis/event-forge-core` | Core services and interfaces | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-core.svg)](https://www.npmjs.com/package/@callairis/event-forge-core) |
+| `@callairis/event-forge-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-typeorm.svg)](https://www.npmjs.com/package/@callairis/event-forge-typeorm) |
+| `@callairis/event-forge-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-mongoose.svg)](https://www.npmjs.com/package/@callairis/event-forge-mongoose) |
+| `@callairis/event-forge-rabbitmq` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-rabbitmq.svg)](https://www.npmjs.com/package/@callairis/event-forge-rabbitmq) |
+| `@callairis/event-forge-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-nestjs.svg)](https://www.npmjs.com/package/@callairis/event-forge-nestjs) |
 
 ### Python
 
 | Package | Description | PyPI |
 |---------|-------------|------|
-| `event-forge-inbox-outbox` | Complete Python implementation with SQLAlchemy & MongoDB support | [![PyPI](https://img.shields.io/pypi/v/event-forge-inbox-outbox.svg)](https://pypi.org/project/event-forge-inbox-outbox/) |
+| `callairis-event-forge` | Complete Python implementation with SQLAlchemy & MongoDB support | [![PyPI](https://img.shields.io/pypi/v/callairis-event-forge.svg)](https://pypi.org/project/callairis-event-forge/) |
 
 ## 🚀 Quick Start
 
@@ -37,7 +37,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 #### 1. Installation
 
 ```bash
-npm install @event-forge/inbox-outbox-core @event-forge/inbox-outbox-nestjs @event-forge/inbox-outbox-typeorm @event-forge/inbox-outbox-rabbitmq
+npm install @callairis/event-forge-core @callairis/event-forge-nestjs @callairis/event-forge-typeorm @callairis/event-forge-rabbitmq
 ```
 
 #### 2. Setup Module
@@ -45,9 +45,9 @@ npm install @event-forge/inbox-outbox-core @event-forge/inbox-outbox-nestjs @eve
 ```typescript
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { InboxOutboxModule } from '@event-forge/inbox-outbox-nestjs';
-import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@event-forge/inbox-outbox-typeorm';
-import { RabbitMQPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
+import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@callairis/event-forge-typeorm';
+import { RabbitMQPublisher } from '@callairis/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -90,7 +90,7 @@ export class AppModule {}
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { OutboxService } from '@event-forge/inbox-outbox-core';
+import { OutboxService } from '@callairis/event-forge-core';
 
 @Injectable()
 export class UserService {
@@ -131,7 +131,7 @@ export class UserService {
 #### 4. Configure RabbitMQ Publisher
 
 ```typescript
-import { RabbitMQPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+import { RabbitMQPublisher } from '@callairis/event-forge-rabbitmq';
 
 const publisher = new RabbitMQPublisher({
   url: 'amqp://guest:guest@localhost:5672',
@@ -146,7 +146,7 @@ await publisher.connect();
 
 ```typescript
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InboxService } from '@event-forge/inbox-outbox-core';
+import { InboxService } from '@callairis/event-forge-core';
 
 @Injectable()
 export class OrderEventHandler implements OnModuleInit {
@@ -177,7 +177,7 @@ export class OrderEventHandler implements OnModuleInit {
 
 ```typescript
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { OutboxService, InboxService } from '@event-forge/inbox-outbox-core';
+import { OutboxService, InboxService } from '@callairis/event-forge-core';
 
 @Injectable()
 export class OutboxPollingService implements OnModuleInit, OnModuleDestroy {
@@ -208,27 +208,27 @@ export class OutboxPollingService implements OnModuleInit, OnModuleDestroy {
 
 ```bash
 # With PostgreSQL support
-pip install event-forge-inbox-outbox
+pip install callairis-event-forge
 
 # With RabbitMQ support
-pip install event-forge-inbox-outbox[rabbitmq]
+pip install callairis-event-forge[rabbitmq]
 
 # With MongoDB support
-pip install event-forge-inbox-outbox[mongodb]
+pip install callairis-event-forge[mongodb]
 
 # All extras
-pip install event-forge-inbox-outbox[rabbitmq,mongodb]
+pip install callairis-event-forge[rabbitmq,mongodb]
 ```
 
 #### 2. Setup with SQLAlchemy (PostgreSQL)
 
 ```python
-from event_forge_inbox_outbox import OutboxService, CreateOutboxMessageDto
-from event_forge_inbox_outbox.repositories.sqlalchemy import (
+from callairis_event_forge import OutboxService, CreateOutboxMessageDto
+from callairis_event_forge.repositories.sqlalchemy import (
     SQLAlchemyOutboxRepository,
     Base,
 )
-from event_forge_inbox_outbox.publishers.aio_pika import AioPikaPublisher
+from callairis_event_forge.publishers.aio_pika import AioPikaPublisher
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -291,8 +291,8 @@ async def create_user(email: str, name: str):
 #### 4. Handle Incoming Messages (Inbox)
 
 ```python
-from event_forge_inbox_outbox import InboxService, CreateInboxMessageDto
-from event_forge_inbox_outbox.repositories.sqlalchemy import SQLAlchemyInboxRepository
+from callairis_event_forge import InboxService, CreateInboxMessageDto
+from callairis_event_forge.repositories.sqlalchemy import SQLAlchemyInboxRepository
 
 # Setup inbox
 inbox_repository = SQLAlchemyInboxRepository(engine)
@@ -455,7 +455,7 @@ CREATE INDEX idx_inbox_created ON inbox_messages(created_at);
 Implement the `IMessagePublisher` interface:
 
 ```typescript
-import { IMessagePublisher, OutboxMessage } from '@event-forge/inbox-outbox-core';
+import { IMessagePublisher, OutboxMessage } from '@callairis/event-forge-core';
 
 export class CustomPublisher implements IMessagePublisher {
   async publish(message: OutboxMessage): Promise<void> {
@@ -484,7 +484,7 @@ export class CustomPublisher implements IMessagePublisher {
 Implement `IOutboxRepository` or `IInboxRepository`:
 
 ```typescript
-import { IOutboxRepository, OutboxMessage } from '@event-forge/inbox-outbox-core';
+import { IOutboxRepository, OutboxMessage } from '@callairis/event-forge-core';
 
 export class CustomOutboxRepository implements IOutboxRepository {
   async create(message: OutboxMessage, transactionContext?: any): Promise<OutboxMessage> {
@@ -504,7 +504,7 @@ export class CustomOutboxRepository implements IOutboxRepository {
 Subscribe to internal events:
 
 ```typescript
-import { OutboxService, OutboxEvent } from '@event-forge/inbox-outbox-core';
+import { OutboxService, OutboxEvent } from '@callairis/event-forge-core';
 
 outboxService.on(OutboxEvent.MESSAGE_CREATED, (message) => {
   console.log('Message created:', message.id);

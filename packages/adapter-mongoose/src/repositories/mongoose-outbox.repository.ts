@@ -3,7 +3,7 @@ import {
   IOutboxRepository,
   OutboxMessage,
   OutboxMessageStatus,
-} from '@event-forge/inbox-outbox-core';
+} from '@callairis/event-forge-core';
 import { Connection, Model, ClientSession } from 'mongoose';
 
 import { OutboxMessageDocument } from '../schemas/outbox-message.schema';

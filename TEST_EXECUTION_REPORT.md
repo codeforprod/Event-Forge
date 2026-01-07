@@ -18,15 +18,15 @@ Comprehensive test suites have been created for the Universal Inbox-Outbox Libra
 
 | Package | Test Type | Test Count | Files Created |
 |---------|-----------|------------|---------------|
-| `@event-forge/inbox-outbox-core` | Unit | 90+ | inbox.service.spec.ts, outbox.service.spec.ts |
-| `@event-forge/inbox-outbox-typeorm` | Integration | 55+ | inbox-repository.spec.ts, outbox-repository.spec.ts |
+| `@callairis/event-forge-core` | Unit | 90+ | inbox.service.spec.ts, outbox.service.spec.ts |
+| `@callairis/event-forge-typeorm` | Integration | 55+ | inbox-repository.spec.ts, outbox-repository.spec.ts |
 | **Total** | | **145+** | **4 test files** |
 
 ### ⏸️ Pending Implementation
 
-- `@event-forge/inbox-outbox-mongoose` - Integration tests
-- `@event-forge/inbox-outbox-rabbitmq` - Integration tests
-- `@event-forge/inbox-outbox-nestjs` - E2E tests
+- `@callairis/event-forge-mongoose` - Integration tests
+- `@callairis/event-forge-rabbitmq` - Integration tests
+- `@callairis/event-forge-nestjs` - E2E tests
 
 ---
 
@@ -160,9 +160,9 @@ await Promise.resolve(); // Let pending promises settle
 ### Issue 4: Jest Configuration Errors (Other Packages)
 
 **Affected Packages**:
-- `@event-forge/inbox-outbox-mongoose`
-- `@event-forge/inbox-outbox-rabbitmq`
-- `@event-forge/inbox-outbox-nestjs`
+- `@callairis/event-forge-mongoose`
+- `@callairis/event-forge-rabbitmq`
+- `@callairis/event-forge-nestjs`
 
 **Error**:
 ```
@@ -204,7 +204,7 @@ Directory /path/to/packages/{package}/test in the roots[1] option was not found.
 
 ### Priority 2: Add Missing Dependencies
 
-**Package**: `@event-forge/inbox-outbox-typeorm`
+**Package**: `@callairis/event-forge-typeorm`
 
 **Missing Dependency**:
 ```bash
@@ -218,7 +218,7 @@ npm install --save-dev better-sqlite3@^9.2.2 @types/better-sqlite3@^7.6.8
 
 ### Priority 3: Verify Integration Tests
 
-**Package**: `@event-forge/inbox-outbox-typeorm`
+**Package**: `@callairis/event-forge-typeorm`
 
 **Command**:
 ```bash

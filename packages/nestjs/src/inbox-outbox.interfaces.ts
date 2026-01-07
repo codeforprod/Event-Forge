@@ -4,7 +4,7 @@ import {
   IMessagePublisher,
   OutboxConfig,
   InboxConfig,
-} from '@event-forge/inbox-outbox-core';
+} from '@callairis/event-forge-core';
 import { InjectionToken, ModuleMetadata, OptionalFactoryDependency, Type } from '@nestjs/common';
 
 /**

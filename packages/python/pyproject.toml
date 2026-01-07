@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "event-forge-inbox-outbox"
+name = "callairis-event-forge"
 version = "1.0.0"
 description = "Universal Inbox-Outbox Pattern Library for Python - reliable message delivery in distributed systems"
 readme = "README.md"
@@ -53,7 +53,7 @@ Repository = "https://github.com/codeforprod/Event-Forge"
 Issues = "https://github.com/codeforprod/Event-Forge/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/event_forge_inbox_outbox"]
+packages = ["src/callairis_event_forge"]
 
 [tool.black]
 line-length = 100

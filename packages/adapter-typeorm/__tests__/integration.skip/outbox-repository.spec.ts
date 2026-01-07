@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { TypeOrmOutboxRepository } from '../../src/repositories/typeorm-outbox.repository';
 import { OutboxMessageEntity } from '../../src/entities/outbox-message.entity';
-import { CreateOutboxMessageDto, OutboxMessageStatus } from '@event-forge/inbox-outbox-core';
+import { CreateOutboxMessageDto, OutboxMessageStatus } from '@callairis/event-forge-core';
 
 describe('TypeOrmOutboxRepository Integration Tests', () => {
   let dataSource: DataSource;

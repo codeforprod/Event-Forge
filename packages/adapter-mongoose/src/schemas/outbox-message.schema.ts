@@ -1,4 +1,4 @@
-import { OutboxMessage, OutboxMessageStatus } from '@event-forge/inbox-outbox-core';
+import { OutboxMessage, OutboxMessageStatus } from '@callairis/event-forge-core';
 import { Schema, Document, Model, Types } from 'mongoose';
 
 /**

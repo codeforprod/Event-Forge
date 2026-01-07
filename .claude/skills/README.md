@@ -113,7 +113,7 @@ Skills are automatically activated when Claude Code detects relevant context:
 
 | Skill | Package | Database | Key Pattern |
 |-------|---------|----------|-------------|
-| event-forge-development | @event-forge/inbox-outbox-core | Any | Core interfaces |
-| typeorm-adapter | @event-forge/inbox-outbox-typeorm | PostgreSQL | SKIP LOCKED |
-| mongoose-adapter | @event-forge/inbox-outbox-mongoose | MongoDB | findOneAndUpdate |
+| event-forge-development | @callairis/event-forge-core | Any | Core interfaces |
+| typeorm-adapter | @callairis/event-forge-typeorm | PostgreSQL | SKIP LOCKED |
+| mongoose-adapter | @callairis/event-forge-mongoose | MongoDB | findOneAndUpdate |
 | testing-event-forge | - | Any | Testcontainers |

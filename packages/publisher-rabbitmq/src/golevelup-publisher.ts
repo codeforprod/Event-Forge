@@ -1,4 +1,4 @@
-import { IMessagePublisher, OutboxMessage, PublishOptions } from '@event-forge/inbox-outbox-core';
+import { IMessagePublisher, OutboxMessage, PublishOptions } from '@callairis/event-forge-core';
 
 /**
  * RabbitMQ-specific publish options extending core PublishOptions

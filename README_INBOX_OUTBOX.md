@@ -6,7 +6,7 @@ A database-agnostic library implementing the Transactional Inbox-Outbox pattern 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    @event-forge/inbox-outbox (NPM)                      │
+│                    @callairis/event-forge (NPM)                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer (database-agnostic)                                         │
 │  ├── Interfaces: IOutboxRepository, IInboxRepository                    │
@@ -28,7 +28,7 @@ A database-agnostic library implementing the Transactional Inbox-Outbox pattern 
 
 ## Packages
 
-### 📦 Core Package (`@event-forge/inbox-outbox-core`)
+### 📦 Core Package (`@callairis/event-forge-core`)
 
 Core interfaces, services, and business logic.
 
@@ -53,7 +53,7 @@ Core interfaces, services, and business logic.
 - `OutboxConfig` - Polling interval, batch size, retry logic
 - `InboxConfig` - Cleanup settings
 
-### 📦 TypeORM Adapter (`@event-forge/inbox-outbox-typeorm`)
+### 📦 TypeORM Adapter (`@callairis/event-forge-typeorm`)
 
 PostgreSQL adapter using TypeORM.
 
@@ -71,7 +71,7 @@ PostgreSQL adapter using TypeORM.
 - Optimized indexes for performance
 - Automatic stale lock release
 
-### 📦 Mongoose Adapter (`@event-forge/inbox-outbox-mongoose`)
+### 📦 Mongoose Adapter (`@callairis/event-forge-mongoose`)
 
 MongoDB adapter using Mongoose.
 
@@ -88,7 +88,7 @@ MongoDB adapter using Mongoose.
 - MongoDB-specific optimizations
 - Compatible with existing message-relay systems
 
-### 📦 RabbitMQ Publishers (`@event-forge/inbox-outbox-rabbitmq`)
+### 📦 RabbitMQ Publishers (`@callairis/event-forge-rabbitmq`)
 
 RabbitMQ integration with two publisher implementations.
 
@@ -96,7 +96,7 @@ RabbitMQ integration with two publisher implementations.
 - `GolevelupPublisher` - For `@golevelup/nestjs-rabbitmq` (event-forge Backend style)
 - `MicroservicesPublisher` - For `@nestjs/microservices` (Holocron style)
 
-### 📦 NestJS Module (`@event-forge/inbox-outbox-nestjs`)
+### 📦 NestJS Module (`@callairis/event-forge-nestjs`)
 
 NestJS integration module.
 
@@ -140,19 +140,19 @@ pip install event-forge-inbox-outbox[rabbitmq]  # with RabbitMQ support
 
 ```bash
 # Core package
-npm install @event-forge/inbox-outbox-core
+npm install @callairis/event-forge-core
 
 # TypeORM adapter
-npm install @event-forge/inbox-outbox-typeorm typeorm
+npm install @callairis/event-forge-typeorm typeorm
 
 # Mongoose adapter
-npm install @event-forge/inbox-outbox-mongoose mongoose
+npm install @callairis/event-forge-mongoose mongoose
 
 # RabbitMQ publishers
-npm install @event-forge/inbox-outbox-rabbitmq
+npm install @callairis/event-forge-rabbitmq
 
 # NestJS module (includes all)
-npm install @event-forge/inbox-outbox-nestjs
+npm install @callairis/event-forge-nestjs
 ```
 
 ## Quick Start
@@ -161,14 +161,14 @@ npm install @event-forge/inbox-outbox-nestjs
 
 ```typescript
 import { DataSource } from 'typeorm';
-import { OutboxService, InboxService } from '@event-forge/inbox-outbox-core';
+import { OutboxService, InboxService } from '@callairis/event-forge-core';
 import {
   TypeOrmOutboxRepository,
   TypeOrmInboxRepository,
   OutboxMessageEntity,
   InboxMessageEntity,
-} from '@event-forge/inbox-outbox-typeorm';
-import { GolevelupPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+} from '@callairis/event-forge-typeorm';
+import { GolevelupPublisher } from '@callairis/event-forge-rabbitmq';
 
 // Setup DataSource
 const dataSource = new DataSource({
@@ -265,11 +265,11 @@ npm run format
 ```
 inbox-outbox/
 ├── packages/
-│   ├── core/                 # @event-forge/inbox-outbox-core
-│   ├── adapter-typeorm/      # @event-forge/inbox-outbox-typeorm
-│   ├── adapter-mongoose/     # @event-forge/inbox-outbox-mongoose
-│   ├── publisher-rabbitmq/   # @event-forge/inbox-outbox-rabbitmq
-│   └── nestjs/               # @event-forge/inbox-outbox-nestjs
+│   ├── core/                 # @callairis/event-forge-core
+│   ├── adapter-typeorm/      # @callairis/event-forge-typeorm
+│   ├── adapter-mongoose/     # @callairis/event-forge-mongoose
+│   ├── publisher-rabbitmq/   # @callairis/event-forge-rabbitmq
+│   └── nestjs/               # @callairis/event-forge-nestjs
 ├── spec/
 │   ├── schemas/              # JSON Schema definitions
 │   └── migrations/           # Database migrations

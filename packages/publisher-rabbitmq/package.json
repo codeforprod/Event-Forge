@@ -1,5 +1,5 @@
 {
-  "name": "@event-forge/inbox-outbox-rabbitmq",
+  "name": "@callairis/event-forge-rabbitmq",
   "version": "1.0.0",
   "description": "RabbitMQ publishers for Universal Inbox-Outbox Pattern",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
   "author": "Event-Forge",
   "license": "MIT",
   "dependencies": {
-    "@event-forge/inbox-outbox-core": "workspace:*"
+    "@callairis/event-forge-core": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
