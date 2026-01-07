@@ -46,9 +46,6 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Sync Python version
-        run: pnpm run sync-versions
-
       - name: Create Release PR or Publish
         id: changesets
         uses: changesets/action@v1
@@ -56,6 +53,7 @@ jobs:
           commit: "chore(release): version packages"
           title: "chore(release): version packages"
           publish: pnpm ci:publish
+          version: pnpm run version-packages && pnpm run sync-versions
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

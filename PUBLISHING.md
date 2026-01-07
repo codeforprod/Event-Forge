@@ -5,8 +5,16 @@ This document describes how to publish Event-Forge packages to NPM and PyPI usin
 ## Overview
 
 Event-Forge uses [Changesets](https://github.com/changesets/changesets) for version management and automated publishing to:
-- **NPM**: 5 packages (@event-forge/inbox-outbox-*)
-- **PyPI**: 1 package (event-forge-inbox-outbox)
+
+**NPM** (5 packages):
+- `@event-forge/inbox-outbox-core`
+- `@event-forge/inbox-outbox-typeorm`
+- `@event-forge/inbox-outbox-mongoose`
+- `@event-forge/inbox-outbox-rabbitmq`
+- `@event-forge/inbox-outbox-nestjs`
+
+**PyPI** (1 package):
+- `event-forge-inbox-outbox`
 
 Publishing is triggered automatically when changes are merged to the `main` branch.
 
@@ -126,13 +134,20 @@ pnpm sync-versions
 
 Syncs version from core package to Python package.
 
-### Publish (Local Testing - Use with Caution!)
+### Publish (CI/CD Only - Do Not Run Locally!)
 
 ```bash
 pnpm release
 ```
 
-This builds and publishes all packages. **Only use for testing with `--dry-run` flag!**
+**WARNING:** This command performs REAL publishing to NPM using `pnpm publish -r`. It does NOT support `--dry-run` flag. This command should ONLY run in CI/CD with proper authentication.
+
+For local testing:
+- Use `pnpm build` to verify builds work
+- Use `pnpm test` to verify tests pass
+- Use `pnpm changeset` to create changesets for testing the PR workflow
+- Refer to [Changesets documentation](https://github.com/changesets/changesets) for local testing guidance
+- Never run `pnpm release` or `pnpm ci:publish` locally unless you intend to publish packages
 
 ## Version Synchronization
 
@@ -155,9 +170,9 @@ You forgot to run `pnpm changeset` before committing. Add a changeset and commit
 ### NPM publish fails
 
 Check that:
-- `NPM_TOKEN` secret is configured
+- `NPM_TOKEN` secret is configured in GitHub Settings
 - Token has "Automation" type
-- Packages have `access: public` in config
+- Packages have `access: public` in `.changeset/config.json` (already configured)
 
 ### PyPI publish fails
 
