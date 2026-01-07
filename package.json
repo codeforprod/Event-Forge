@@ -15,9 +15,15 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"packages/**/*.{ts,tsx,md,json}\"",
-    "format:check": "prettier --check \"packages/**/*.{ts,tsx,md,json}\""
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,md,json}\"",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "sync-versions": "node scripts/sync-python-version.js",
+    "ci:publish": "pnpm publish -r --access public --no-git-checks",
+    "release": "pnpm build && pnpm ci:publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
