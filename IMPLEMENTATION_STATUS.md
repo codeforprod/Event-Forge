@@ -10,7 +10,7 @@
 - [x] Prettier configuration (`.prettierrc.json`)
 - [x] Jest base configuration (`jest.config.base.js`)
 
-### Phase 2: Core Package (`@event-forge/inbox-outbox-core`)
+### Phase 2: Core Package (`@callairis/event-forge-core`)
 
 **Interfaces** (`packages/core/src/interfaces/`):
 - [x] `outbox-message.interface.ts` - OutboxMessage + OutboxMessageStatus enum
@@ -47,7 +47,7 @@
 - [x] `processing.error.ts` - ProcessingError for permanent failures
 - [x] `duplicate-message.error.ts` - DuplicateMessageError
 
-### Phase 3: TypeORM Adapter (`@event-forge/inbox-outbox-typeorm`)
+### Phase 3: TypeORM Adapter (`@callairis/event-forge-typeorm`)
 
 **Entities** (`packages/adapter-typeorm/src/entities/`):
 - [x] `outbox-message.entity.ts` - TypeORM entity with:
@@ -71,7 +71,7 @@
   - Race condition handling (code 23505)
   - Status management methods
 
-### Phase 4: Mongoose Adapter (`@event-forge/inbox-outbox-mongoose`)
+### Phase 4: Mongoose Adapter (`@callairis/event-forge-mongoose`)
 
 **Schemas** (`packages/adapter-mongoose/src/schemas/`):
 - [x] `outbox-message.schema.ts` - Mongoose schema with:
@@ -97,7 +97,7 @@
   - Status management methods
   - Returns RecordInboxMessageResult with isDuplicate flag
 
-### Phase 5: RabbitMQ Publishers (`@event-forge/inbox-outbox-rabbitmq`)
+### Phase 5: RabbitMQ Publishers (`@callairis/event-forge-rabbitmq`)
 
 **Publishers** (`packages/publisher-rabbitmq/src/`):
 - [x] `golevelup-publisher.ts` - GolevelupPublisher with:
@@ -111,7 +111,7 @@
   - Metadata embedded in message
   - ClientProxy emit pattern
 
-### Phase 6: NestJS Module (`@event-forge/inbox-outbox-nestjs`)
+### Phase 6: NestJS Module (`@callairis/event-forge-nestjs`)
 
 **Module** (`packages/nestjs/src/`):
 - [x] `inbox-outbox.constants.ts` - DI tokens:
@@ -162,11 +162,11 @@
 ## Build Status
 
 All packages build successfully:
-- ✅ `@event-forge/inbox-outbox-core` - TypeScript compilation passed
-- ✅ `@event-forge/inbox-outbox-typeorm` - TypeScript compilation passed
-- ✅ `@event-forge/inbox-outbox-mongoose` - TypeScript compilation passed
-- ✅ `@event-forge/inbox-outbox-rabbitmq` - TypeScript compilation passed
-- ✅ `@event-forge/inbox-outbox-nestjs` - TypeScript compilation passed
+- ✅ `@callairis/event-forge-core` - TypeScript compilation passed
+- ✅ `@callairis/event-forge-typeorm` - TypeScript compilation passed
+- ✅ `@callairis/event-forge-mongoose` - TypeScript compilation passed
+- ✅ `@callairis/event-forge-rabbitmq` - TypeScript compilation passed
+- ✅ `@callairis/event-forge-nestjs` - TypeScript compilation passed
 
 ## Resolved Issues
 

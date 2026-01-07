@@ -4,7 +4,7 @@ import {
   InboxMessage,
   InboxMessageStatus,
   RecordInboxMessageResult,
-} from '@event-forge/inbox-outbox-core';
+} from '@callairis/event-forge-core';
 import { Model } from 'mongoose';
 
 import { InboxMessageDocument } from '../schemas/inbox-message.schema';

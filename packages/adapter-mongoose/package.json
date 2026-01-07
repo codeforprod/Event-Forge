@@ -1,5 +1,5 @@
 {
-  "name": "@event-forge/inbox-outbox-mongoose",
+  "name": "@callairis/event-forge-mongoose",
   "version": "1.0.0",
   "description": "Mongoose adapter for Universal Inbox-Outbox Pattern (MongoDB)",
   "main": "dist/index.js",
@@ -25,7 +25,7 @@
   "author": "Event-Forge",
   "license": "MIT",
   "dependencies": {
-    "@event-forge/inbox-outbox-core": "workspace:*",
+    "@callairis/event-forge-core": "workspace:*",
     "mongoose": "^8.0.0"
   },
   "devDependencies": {

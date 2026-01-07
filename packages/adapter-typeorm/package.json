@@ -1,5 +1,5 @@
 {
-  "name": "@event-forge/inbox-outbox-typeorm",
+  "name": "@callairis/event-forge-typeorm",
   "version": "1.0.0",
   "description": "TypeORM adapter for Universal Inbox-Outbox Pattern (PostgreSQL)",
   "main": "dist/index.js",
@@ -27,7 +27,7 @@
   "author": "Event-Forge",
   "license": "MIT",
   "dependencies": {
-    "@event-forge/inbox-outbox-core": "workspace:*",
+    "@callairis/event-forge-core": "workspace:*",
     "typeorm": "^0.3.17"
   },
   "devDependencies": {

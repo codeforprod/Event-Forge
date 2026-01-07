@@ -44,7 +44,7 @@ importers:
 
   packages/adapter-mongoose:
     dependencies:
-      '@event-forge/inbox-outbox-core':
+      '@callairis/event-forge-core':
         specifier: workspace:*
         version: link:../core
       mongoose:
@@ -69,7 +69,7 @@ importers:
 
   packages/adapter-typeorm:
     dependencies:
-      '@event-forge/inbox-outbox-core':
+      '@callairis/event-forge-core':
         specifier: workspace:*
         version: link:../core
       typeorm:
@@ -122,7 +122,7 @@ importers:
 
   packages/nestjs:
     dependencies:
-      '@event-forge/inbox-outbox-core':
+      '@callairis/event-forge-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -150,7 +150,7 @@ importers:
 
   packages/publisher-rabbitmq:
     dependencies:
-      '@event-forge/inbox-outbox-core':
+      '@callairis/event-forge-core':
         specifier: workspace:*
         version: link:../core
       '@golevelup/nestjs-rabbitmq':

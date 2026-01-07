@@ -5,17 +5,17 @@ Python implementation of the Universal Inbox-Outbox Pattern for reliable message
 ## Installation
 
 ```bash
-pip install event-forge-inbox-outbox
+pip install callairis-event-forge
 ```
 
 With RabbitMQ support:
 ```bash
-pip install event-forge-inbox-outbox[rabbitmq]
+pip install callairis-event-forge[rabbitmq]
 ```
 
 With MongoDB support:
 ```bash
-pip install event-forge-inbox-outbox[mongodb]
+pip install callairis-event-forge[mongodb]
 ```
 
 ## Requirements
@@ -29,12 +29,12 @@ pip install event-forge-inbox-outbox[mongodb]
 ### PostgreSQL + SQLAlchemy
 
 ```python
-from event_forge_inbox_outbox import OutboxService, CreateOutboxMessageDto
-from event_forge_inbox_outbox.repositories.sqlalchemy import (
+from callairis_event_forge import OutboxService, CreateOutboxMessageDto
+from callairis_event_forge.repositories.sqlalchemy import (
     SQLAlchemyOutboxRepository,
     Base,
 )
-from event_forge_inbox_outbox.publishers.aio_pika import AioPikaPublisher
+from callairis_event_forge.publishers.aio_pika import AioPikaPublisher
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 # Setup database
@@ -70,8 +70,8 @@ await outbox.start_polling()
 ### Inbox Pattern
 
 ```python
-from event_forge_inbox_outbox import InboxService, CreateInboxMessageDto
-from event_forge_inbox_outbox.repositories.sqlalchemy import SQLAlchemyInboxRepository
+from callairis_event_forge import InboxService, CreateInboxMessageDto
+from callairis_event_forge.repositories.sqlalchemy import SQLAlchemyInboxRepository
 
 # Setup
 repository = SQLAlchemyInboxRepository(engine)
@@ -117,9 +117,9 @@ Matches the TypeScript implementation:
 Designed for **Event-Forge Agent** (Python service using SQLAlchemy + PostgreSQL).
 
 For TypeScript/JavaScript projects, use the NPM packages:
-- `@event-forge/inbox-outbox-core`
-- `@event-forge/inbox-outbox-typeorm`
-- `@event-forge/inbox-outbox-mongoose`
+- `@callairis/event-forge-core`
+- `@callairis/event-forge-typeorm`
+- `@callairis/event-forge-mongoose`
 
 ## Documentation
 

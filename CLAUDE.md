@@ -25,15 +25,15 @@ npm run typecheck     # Type check
 
 ```
 packages/
-├── core/                 # @event-forge/inbox-outbox-core
+├── core/                 # @callairis/event-forge-core
 │   ├── interfaces/       # IOutboxRepository, IInboxRepository, IMessagePublisher
 │   ├── services/         # OutboxService, InboxService
 │   └── errors/           # ProcessingError
-├── adapter-typeorm/      # @event-forge/inbox-outbox-typeorm (PostgreSQL)
-├── adapter-mongoose/     # @event-forge/inbox-outbox-mongoose (MongoDB)
-├── publisher-rabbitmq/   # @event-forge/inbox-outbox-rabbitmq
-├── nestjs/               # @event-forge/inbox-outbox-nestjs (DynamicModule)
-└── python/               # event-forge-inbox-outbox (PyPI)
+├── adapter-typeorm/      # @callairis/event-forge-typeorm (PostgreSQL)
+├── adapter-mongoose/     # @callairis/event-forge-mongoose (MongoDB)
+├── publisher-rabbitmq/   # @callairis/event-forge-rabbitmq
+├── nestjs/               # @callairis/event-forge-nestjs (DynamicModule)
+└── python/               # callairis-event-forge (PyPI)
 ```
 
 ### Core Interfaces

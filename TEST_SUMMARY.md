@@ -377,10 +377,10 @@ npx jest --clearCache
 ## Test Output Example
 
 ```
- PASS  @event-forge/inbox-outbox-core src/services/__tests__/inbox.service.spec.ts
- PASS  @event-forge/inbox-outbox-core src/services/__tests__/outbox.service.spec.ts
- PASS  @event-forge/inbox-outbox-typeorm __tests__/integration/inbox-repository.spec.ts
- PASS  @event-forge/inbox-outbox-typeorm __tests__/integration/outbox-repository.spec.ts
+ PASS  @callairis/event-forge-core src/services/__tests__/inbox.service.spec.ts
+ PASS  @callairis/event-forge-core src/services/__tests__/outbox.service.spec.ts
+ PASS  @callairis/event-forge-typeorm __tests__/integration/inbox-repository.spec.ts
+ PASS  @callairis/event-forge-typeorm __tests__/integration/outbox-repository.spec.ts
 
 Test Suites: 4 passed, 4 total
 Tests:       145 passed, 145 total

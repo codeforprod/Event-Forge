@@ -20,16 +20,16 @@ Create a database-agnostic, pluggable library implementing the Transactional Inb
 
 | Project | Database | Adapter Needed |
 |---------|----------|----------------|
-| event-forge Backend | PostgreSQL + TypeORM | `@event-forge/inbox-outbox-typeorm` |
+| event-forge Backend | PostgreSQL + TypeORM | `@callairis/event-forge-typeorm` |
 | event-forge Agent | PostgreSQL + SQLAlchemy | `event-forge-inbox-outbox` (Python) |
-| Holocron | MongoDB + Mongoose | `@event-forge/inbox-outbox-mongoose` |
+| Holocron | MongoDB + Mongoose | `@callairis/event-forge-mongoose` |
 | Future projects | Any | Pluggable adapters |
 
 ---
 
 ## Acceptance Criteria
 
-### AC1: Core Package (`@event-forge/inbox-outbox-core`)
+### AC1: Core Package (`@callairis/event-forge-core`)
 
 **Interfaces:**
 - [ ] `IOutboxRepository` - create, fetchAndLockPending, markPublished, markFailed, withTransaction
@@ -47,7 +47,7 @@ Create a database-agnostic, pluggable library implementing the Transactional Inb
 **Errors:**
 - [ ] `ProcessingError` - permanent failure (no retries)
 
-### AC2: TypeORM Adapter (`@event-forge/inbox-outbox-typeorm`)
+### AC2: TypeORM Adapter (`@callairis/event-forge-typeorm`)
 
 - [ ] `OutboxMessageEntity` - TypeORM entity with indexes
 - [ ] `InboxMessageEntity` - TypeORM entity with unique constraint
@@ -55,7 +55,7 @@ Create a database-agnostic, pluggable library implementing the Transactional Inb
 - [ ] `TypeOrmInboxRepository` - implements IInboxRepository
 - [ ] PostgreSQL migrations in `spec/migrations/postgresql/`
 
-### AC3: Mongoose Adapter (`@event-forge/inbox-outbox-mongoose`)
+### AC3: Mongoose Adapter (`@callairis/event-forge-mongoose`)
 
 - [ ] `OutboxMessageSchema` - Mongoose schema compatible with message-relay
 - [ ] `InboxMessageSchema` - Mongoose schema
@@ -63,12 +63,12 @@ Create a database-agnostic, pluggable library implementing the Transactional Inb
 - [ ] `MongooseInboxRepository` - implements IInboxRepository
 - [ ] MongoDB indexes in `spec/migrations/mongodb/`
 
-### AC4: RabbitMQ Publisher (`@event-forge/inbox-outbox-rabbitmq`)
+### AC4: RabbitMQ Publisher (`@callairis/event-forge-rabbitmq`)
 
 - [ ] `GolevelupPublisher` - for @golevelup/nestjs-rabbitmq (event-forge style)
 - [ ] `MicroservicesPublisher` - for @nestjs/microservices (Holocron style)
 
-### AC5: NestJS Module (`@event-forge/inbox-outbox-nestjs`)
+### AC5: NestJS Module (`@callairis/event-forge-nestjs`)
 
 - [ ] `InboxOutboxModule.forRoot(options)` - sync configuration
 - [ ] `InboxOutboxModule.forRootAsync(options)` - async configuration
@@ -102,11 +102,11 @@ inbox-outbox/
 │   ├── schemas/              # JSON Schema (source of truth)
 │   └── migrations/           # PostgreSQL + MongoDB
 ├── packages/
-│   ├── core/                 # @event-forge/inbox-outbox-core
-│   ├── adapter-typeorm/      # @event-forge/inbox-outbox-typeorm
-│   ├── adapter-mongoose/     # @event-forge/inbox-outbox-mongoose
-│   ├── publisher-rabbitmq/   # @event-forge/inbox-outbox-rabbitmq
-│   ├── nestjs/               # @event-forge/inbox-outbox-nestjs
+│   ├── core/                 # @callairis/event-forge-core
+│   ├── adapter-typeorm/      # @callairis/event-forge-typeorm
+│   ├── adapter-mongoose/     # @callairis/event-forge-mongoose
+│   ├── publisher-rabbitmq/   # @callairis/event-forge-rabbitmq
+│   ├── nestjs/               # @callairis/event-forge-nestjs
 │   └── python/               # event-forge-inbox-outbox (PyPI)
 └── examples/
 ```
@@ -205,9 +205,9 @@ interface IOutboxRepository {
 ### event-forge Backend
 
 ```typescript
-import { InboxOutboxModule } from '@event-forge/inbox-outbox-nestjs';
-import { TypeOrmOutboxRepository } from '@event-forge/inbox-outbox-typeorm';
-import { GolevelupPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
+import { TypeOrmOutboxRepository } from '@callairis/event-forge-typeorm';
+import { GolevelupPublisher } from '@callairis/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -224,8 +224,8 @@ export class AppModule {}
 ### Holocron
 
 ```typescript
-import { MongooseOutboxRepository } from '@event-forge/inbox-outbox-mongoose';
-import { MicroservicesPublisher } from '@event-forge/inbox-outbox-rabbitmq';
+import { MongooseOutboxRepository } from '@callairis/event-forge-mongoose';
+import { MicroservicesPublisher } from '@callairis/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -262,7 +262,7 @@ async with outbox_service.transaction() as session:
 - [ ] All AC met
 - [ ] Unit test coverage >80%
 - [ ] Integration tests passing
-- [ ] NPM packages published (`@event-forge/inbox-outbox-*`)
+- [ ] NPM packages published (`@callairis/event-forge-*`)
 - [ ] PyPI package published (`event-forge-inbox-outbox`)
 - [ ] event-forge Backend using library
 - [ ] event-forge Agent using library
@@ -274,11 +274,11 @@ async with outbox_service.transaction() as session:
 
 ## NPM Scope Decision
 
-**Option A**: `@event-forge/inbox-outbox-*` (personal scope)
-**Option B**: `@event-forge/inbox-outbox-*` (project scope)
+**Option A**: `@callairis/event-forge-*` (personal scope)
+**Option B**: `@callairis/event-forge-*` (project scope)
 **Option C**: `inbox-outbox-universal` (no scope)
 
-**Recommendation**: `@event-forge/inbox-outbox-*` for personal reusable libraries.
+**Recommendation**: `@callairis/event-forge-*` for personal reusable libraries.
 
 ---
 

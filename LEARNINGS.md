@@ -526,7 +526,7 @@ describe('OutboxService', () => {
 
 **Feature**: Alternative to RabbitMQ for high-throughput scenarios.
 
-**Implementation**: New package `@event-forge/inbox-outbox-kafka`
+**Implementation**: New package `@callairis/event-forge-kafka`
 
 ## Documentation Improvements
 
