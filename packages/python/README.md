@@ -117,9 +117,9 @@ Matches the TypeScript implementation:
 Designed for **Event-Forge Agent** (Python service using SQLAlchemy + PostgreSQL).
 
 For TypeScript/JavaScript projects, use the NPM packages:
-- `@callairis/event-forge-core`
-- `@callairis/event-forge-typeorm`
-- `@callairis/event-forge-mongoose`
+- `@prodforcode/event-forge-core`
+- `@prodforcode/event-forge-typeorm`
+- `@prodforcode/event-forge-mongoose`
 
 ## Documentation
 

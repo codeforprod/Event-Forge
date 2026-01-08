@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { TypeOrmInboxRepository } from '../../src/repositories/typeorm-inbox.repository';
 import { InboxMessageEntity } from '../../src/entities/inbox-message.entity';
-import { CreateInboxMessageDto, InboxMessageStatus } from '@callairis/event-forge-core';
+import { CreateInboxMessageDto, InboxMessageStatus } from '@prodforcode/event-forge-core';
 
 describe('TypeOrmInboxRepository Integration Tests', () => {
   let dataSource: DataSource;

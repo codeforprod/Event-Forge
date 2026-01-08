@@ -6,7 +6,7 @@ A database-agnostic library for reliable message delivery using the Transactiona
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    @callairis/event-forge (NPM)                          │
+│                    @prodforcode/event-forge (NPM)                          │
 │                    event-forge-inbox-outbox (PyPI)                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer (database-agnostic)                                         │
@@ -47,7 +47,7 @@ inbox-outbox/
 │           └── indexes.js
 │
 ├── packages/
-│   ├── core/                         # @callairis/event-forge-core
+│   ├── core/                         # @prodforcode/event-forge-core
 │   │   ├── interfaces/
 │   │   │   ├── outbox-repository.interface.ts
 │   │   │   ├── inbox-repository.interface.ts
@@ -62,7 +62,7 @@ inbox-outbox/
 │   │   │   └── processing.error.ts
 │   │   └── index.ts
 │   │
-│   ├── adapter-typeorm/              # @callairis/event-forge-typeorm
+│   ├── adapter-typeorm/              # @prodforcode/event-forge-typeorm
 │   │   ├── entities/
 │   │   │   ├── outbox-message.entity.ts
 │   │   │   └── inbox-message.entity.ts
@@ -71,7 +71,7 @@ inbox-outbox/
 │   │   │   └── typeorm-inbox.repository.ts
 │   │   └── index.ts
 │   │
-│   ├── adapter-mongoose/             # @callairis/event-forge-mongoose
+│   ├── adapter-mongoose/             # @prodforcode/event-forge-mongoose
 │   │   ├── schemas/
 │   │   │   ├── outbox-message.schema.ts
 │   │   │   └── inbox-message.schema.ts
@@ -80,12 +80,12 @@ inbox-outbox/
 │   │   │   └── mongoose-inbox.repository.ts
 │   │   └── index.ts
 │   │
-│   ├── publisher-rabbitmq/           # @callairis/event-forge-rabbitmq
+│   ├── publisher-rabbitmq/           # @prodforcode/event-forge-rabbitmq
 │   │   ├── golevelup-publisher.ts
 │   │   ├── microservices-publisher.ts
 │   │   └── index.ts
 │   │
-│   ├── nestjs/                       # @callairis/event-forge-nestjs
+│   ├── nestjs/                       # @prodforcode/event-forge-nestjs
 │   │   ├── inbox-outbox.module.ts
 │   │   └── index.ts
 │   │
@@ -286,7 +286,7 @@ export class OutboxMessageEntity {
 
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, LessThanOrEqual, IsNull, Or } from 'typeorm';
-import { IOutboxRepository, OutboxMessage, CreateOutboxMessageDto } from '@callairis/event-forge-core';
+import { IOutboxRepository, OutboxMessage, CreateOutboxMessageDto } from '@prodforcode/event-forge-core';
 import { OutboxMessageEntity } from '../entities/outbox-message.entity';
 
 @Injectable()
@@ -446,7 +446,7 @@ OutboxMessageSchema.index({ status: 1, scheduledAt: 1, isLocked: 1 });
 import { Injectable } from '@nestjs/common';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Connection, ClientSession } from 'mongoose';
-import { IOutboxRepository, OutboxMessage, CreateOutboxMessageDto } from '@callairis/event-forge-core';
+import { IOutboxRepository, OutboxMessage, CreateOutboxMessageDto } from '@prodforcode/event-forge-core';
 import { OutboxMessageDocument } from '../schemas/outbox-message.schema';
 
 @Injectable()
@@ -567,7 +567,7 @@ import {
   INBOX_REPOSITORY,
   MESSAGE_PUBLISHER,
   INBOX_OUTBOX_CONFIG,
-} from '@callairis/event-forge-core';
+} from '@prodforcode/event-forge-core';
 
 export interface InboxOutboxModuleOptions {
   // Repositories (required)
@@ -664,9 +664,9 @@ export class InboxOutboxModule {
 
 ```typescript
 // app.module.ts
-import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
-import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@callairis/event-forge-typeorm';
-import { RabbitMQPublisher } from '@callairis/event-forge-rabbitmq';
+import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
+import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@prodforcode/event-forge-typeorm';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -721,9 +721,9 @@ export class CallsService {
 
 ```typescript
 // app.module.ts
-import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
-import { MongooseOutboxRepository, MongooseInboxRepository } from '@callairis/event-forge-mongoose';
-import { MicroservicesPublisher } from '@callairis/event-forge-rabbitmq';
+import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
+import { MongooseOutboxRepository, MongooseInboxRepository } from '@prodforcode/event-forge-mongoose';
+import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -812,11 +812,11 @@ async def start_call(call_id: str):
 
 | Package | Description | Use Case |
 |---------|-------------|----------|
-| `@callairis/event-forge-core` | Core interfaces & services | Always required |
-| `@callairis/event-forge-typeorm` | PostgreSQL adapter | event-forge Backend |
-| `@callairis/event-forge-mongoose` | MongoDB adapter | Holocron |
-| `@callairis/event-forge-rabbitmq` | RabbitMQ publishers | All projects |
-| `@callairis/event-forge-nestjs` | NestJS module | NestJS projects |
+| `@prodforcode/event-forge-core` | Core interfaces & services | Always required |
+| `@prodforcode/event-forge-typeorm` | PostgreSQL adapter | event-forge Backend |
+| `@prodforcode/event-forge-mongoose` | MongoDB adapter | Holocron |
+| `@prodforcode/event-forge-rabbitmq` | RabbitMQ publishers | All projects |
+| `@prodforcode/event-forge-nestjs` | NestJS module | NestJS projects |
 
 **Python:**
 | Package | Description |
@@ -845,8 +845,8 @@ For projects using `@aaa-gth/message-relay`:
 import { MessageRelayModule, RabbitMqOutboxMessage } from '@aaa-gth/message-relay';
 
 // After
-import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
-import { MongooseOutboxRepository } from '@callairis/event-forge-mongoose';
+import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
+import { MongooseOutboxRepository } from '@prodforcode/event-forge-mongoose';
 
 // Migration: RabbitMqOutboxMessage → OutboxService.createMessage()
 // Migration: @TransactionalMessageHandler → @InboxHandler + OutboxService

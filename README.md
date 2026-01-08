@@ -18,11 +18,11 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 
 | Package | Description | NPM |
 |---------|-------------|-----|
-| `@callairis/event-forge-core` | Core services and interfaces | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-core.svg)](https://www.npmjs.com/package/@callairis/event-forge-core) |
-| `@callairis/event-forge-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-typeorm.svg)](https://www.npmjs.com/package/@callairis/event-forge-typeorm) |
-| `@callairis/event-forge-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-mongoose.svg)](https://www.npmjs.com/package/@callairis/event-forge-mongoose) |
-| `@callairis/event-forge-rabbitmq` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-rabbitmq.svg)](https://www.npmjs.com/package/@callairis/event-forge-rabbitmq) |
-| `@callairis/event-forge-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@callairis/event-forge-nestjs.svg)](https://www.npmjs.com/package/@callairis/event-forge-nestjs) |
+| `@prodforcode/event-forge-core` | Core services and interfaces | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-core.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-core) |
+| `@prodforcode/event-forge-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-typeorm.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-typeorm) |
+| `@prodforcode/event-forge-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-mongoose.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-mongoose) |
+| `@prodforcode/event-forge-rabbitmq` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-rabbitmq.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-rabbitmq) |
+| `@prodforcode/event-forge-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-nestjs.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-nestjs) |
 
 ### Python
 
@@ -37,7 +37,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 #### 1. Installation
 
 ```bash
-npm install @callairis/event-forge-core @callairis/event-forge-nestjs @callairis/event-forge-typeorm @callairis/event-forge-rabbitmq
+npm install @prodforcode/event-forge-core @prodforcode/event-forge-nestjs @prodforcode/event-forge-typeorm @prodforcode/event-forge-rabbitmq
 ```
 
 #### 2. Setup Module
@@ -45,9 +45,9 @@ npm install @callairis/event-forge-core @callairis/event-forge-nestjs @callairis
 ```typescript
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
-import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@callairis/event-forge-typeorm';
-import { RabbitMQPublisher } from '@callairis/event-forge-rabbitmq';
+import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
+import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@prodforcode/event-forge-typeorm';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
 
 @Module({
   imports: [
@@ -90,7 +90,7 @@ export class AppModule {}
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { OutboxService } from '@callairis/event-forge-core';
+import { OutboxService } from '@prodforcode/event-forge-core';
 
 @Injectable()
 export class UserService {
@@ -131,7 +131,7 @@ export class UserService {
 #### 4. Configure RabbitMQ Publisher
 
 ```typescript
-import { RabbitMQPublisher } from '@callairis/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
 
 const publisher = new RabbitMQPublisher({
   url: 'amqp://guest:guest@localhost:5672',
@@ -146,7 +146,7 @@ await publisher.connect();
 
 ```typescript
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InboxService } from '@callairis/event-forge-core';
+import { InboxService } from '@prodforcode/event-forge-core';
 
 @Injectable()
 export class OrderEventHandler implements OnModuleInit {
@@ -177,7 +177,7 @@ export class OrderEventHandler implements OnModuleInit {
 
 ```typescript
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { OutboxService, InboxService } from '@callairis/event-forge-core';
+import { OutboxService, InboxService } from '@prodforcode/event-forge-core';
 
 @Injectable()
 export class OutboxPollingService implements OnModuleInit, OnModuleDestroy {
@@ -455,7 +455,7 @@ CREATE INDEX idx_inbox_created ON inbox_messages(created_at);
 Implement the `IMessagePublisher` interface:
 
 ```typescript
-import { IMessagePublisher, OutboxMessage } from '@callairis/event-forge-core';
+import { IMessagePublisher, OutboxMessage } from '@prodforcode/event-forge-core';
 
 export class CustomPublisher implements IMessagePublisher {
   async publish(message: OutboxMessage): Promise<void> {
@@ -484,7 +484,7 @@ export class CustomPublisher implements IMessagePublisher {
 Implement `IOutboxRepository` or `IInboxRepository`:
 
 ```typescript
-import { IOutboxRepository, OutboxMessage } from '@callairis/event-forge-core';
+import { IOutboxRepository, OutboxMessage } from '@prodforcode/event-forge-core';
 
 export class CustomOutboxRepository implements IOutboxRepository {
   async create(message: OutboxMessage, transactionContext?: any): Promise<OutboxMessage> {
@@ -504,7 +504,7 @@ export class CustomOutboxRepository implements IOutboxRepository {
 Subscribe to internal events:
 
 ```typescript
-import { OutboxService, OutboxEvent } from '@callairis/event-forge-core';
+import { OutboxService, OutboxEvent } from '@prodforcode/event-forge-core';
 
 outboxService.on(OutboxEvent.MESSAGE_CREATED, (message) => {
   console.log('Message created:', message.id);

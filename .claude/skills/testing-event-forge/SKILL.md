@@ -32,7 +32,7 @@ Comprehensive testing strategies for the Transactional Inbox-Outbox pattern impl
 
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
-import { OutboxService, OUTBOX_REPOSITORY, IOutboxRepository } from '@callairis/event-forge-core';
+import { OutboxService, OUTBOX_REPOSITORY, IOutboxRepository } from '@prodforcode/event-forge-core';
 
 describe('OutboxService', () => {
   let service: OutboxService;
@@ -406,7 +406,7 @@ module.exports = {
   testEnvironment: 'node',
   testTimeout: 60000, // For testcontainers
   moduleNameMapper: {
-    '@callairis/event-forge-(.*)': '<rootDir>/packages/$1/src',
+    '@prodforcode/event-forge-(.*)': '<rootDir>/packages/$1/src',
   },
 };
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "@callairis/event-forge-core",
+  "name": "@prodforcode/event-forge-core",
   "version": "1.0.0",
   "description": "Core interfaces and services for the Universal Inbox-Outbox Pattern",
   "main": "dist/index.js",

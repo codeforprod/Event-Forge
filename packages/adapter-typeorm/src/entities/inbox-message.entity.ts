@@ -1,4 +1,4 @@
-import { InboxMessage, InboxMessageStatus } from '@callairis/event-forge-core';
+import { InboxMessage, InboxMessageStatus } from '@prodforcode/event-forge-core';
 import {
   Column,
   CreateDateColumn,

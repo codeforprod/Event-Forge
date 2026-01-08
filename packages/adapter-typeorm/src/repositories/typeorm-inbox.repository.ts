@@ -3,7 +3,7 @@ import {
   IInboxRepository,
   InboxMessageStatus,
   RecordInboxMessageResult,
-} from '@callairis/event-forge-core';
+} from '@prodforcode/event-forge-core';
 import { DataSource, LessThan, Repository } from 'typeorm';
 
 

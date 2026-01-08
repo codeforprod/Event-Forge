@@ -1,4 +1,4 @@
-import { IMessagePublisher, OutboxMessage, PublishOptions } from '@callairis/event-forge-core';
+import { IMessagePublisher, OutboxMessage, PublishOptions } from '@prodforcode/event-forge-core';
 
 /**
  * Client proxy interface for @nestjs/microservices

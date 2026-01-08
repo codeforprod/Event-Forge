@@ -17,12 +17,12 @@ Event-Forge is a database-agnostic library implementing the Transactional Inbox-
 │  └── Errors: ProcessingError                                            │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Adapters (pluggable)                                                   │
-│  ├── PostgreSQL (TypeORM)     → @callairis/event-forge-typeorm       │
-│  ├── MongoDB (Mongoose)       → @callairis/event-forge-mongoose      │
+│  ├── PostgreSQL (TypeORM)     → @prodforcode/event-forge-typeorm       │
+│  ├── MongoDB (Mongoose)       → @prodforcode/event-forge-mongoose      │
 │  └── Python (SQLAlchemy)      → event-forge-inbox-outbox (PyPI)         │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Publishers (pluggable)                                                 │
-│  ├── RabbitMQ (@golevelup)    → @callairis/event-forge-rabbitmq      │
+│  ├── RabbitMQ (@golevelup)    → @prodforcode/event-forge-rabbitmq      │
 │  └── RabbitMQ (microservices) → For @nestjs/microservices               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -31,11 +31,11 @@ Event-Forge is a database-agnostic library implementing the Transactional Inbox-
 
 ```
 packages/
-├── core/                 # @callairis/event-forge-core
-├── adapter-typeorm/      # @callairis/event-forge-typeorm
-├── adapter-mongoose/     # @callairis/event-forge-mongoose
-├── publisher-rabbitmq/   # @callairis/event-forge-rabbitmq
-├── nestjs/               # @callairis/event-forge-nestjs
+├── core/                 # @prodforcode/event-forge-core
+├── adapter-typeorm/      # @prodforcode/event-forge-typeorm
+├── adapter-mongoose/     # @prodforcode/event-forge-mongoose
+├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq
+├── nestjs/               # @prodforcode/event-forge-nestjs
 └── python/               # event-forge-inbox-outbox (PyPI)
 ```
 
@@ -107,9 +107,9 @@ pending → processing → published
 ### Basic Setup
 
 ```typescript
-import { InboxOutboxModule } from '@callairis/event-forge-nestjs';
-import { TypeOrmOutboxRepository } from '@callairis/event-forge-typeorm';
-import { GolevelupPublisher } from '@callairis/event-forge-rabbitmq';
+import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
+import { TypeOrmOutboxRepository } from '@prodforcode/event-forge-typeorm';
+import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq';
 
 @Module({
   imports: [

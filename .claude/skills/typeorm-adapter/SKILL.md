@@ -7,7 +7,7 @@ description: Implements PostgreSQL adapter for Event-Forge using TypeORM with SK
 
 PostgreSQL adapter implementation using TypeORM for the Transactional Inbox-Outbox pattern.
 
-## Package: @callairis/event-forge-typeorm
+## Package: @prodforcode/event-forge-typeorm
 
 ## Entity Definitions
 
@@ -137,7 +137,7 @@ import {
   IOutboxRepository,
   OutboxMessage,
   CreateOutboxMessageDto,
-} from '@callairis/event-forge-core';
+} from '@prodforcode/event-forge-core';
 import { OutboxMessageEntity } from '../entities/outbox-message.entity';
 
 @Injectable()
@@ -378,7 +378,7 @@ Benefits:
 ```typescript
 // app.module.ts
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OutboxMessageEntity, InboxMessageEntity } from '@callairis/event-forge-typeorm';
+import { OutboxMessageEntity, InboxMessageEntity } from '@prodforcode/event-forge-typeorm';
 
 @Module({
   imports: [
