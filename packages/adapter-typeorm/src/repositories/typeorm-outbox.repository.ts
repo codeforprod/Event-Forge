@@ -3,7 +3,7 @@ import {
   IOutboxRepository,
   OutboxMessage,
   OutboxMessageStatus,
-} from '@callairis/event-forge-core';
+} from '@prodforcode/event-forge-core';
 import { DataSource, EntityManager, LessThan, Repository } from 'typeorm';
 
 

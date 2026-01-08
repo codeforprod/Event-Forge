@@ -4,7 +4,7 @@ import {
   IOutboxRepository,
   IInboxRepository,
   IMessagePublisher,
-} from '@callairis/event-forge-core';
+} from '@prodforcode/event-forge-core';
 import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
 
 import {

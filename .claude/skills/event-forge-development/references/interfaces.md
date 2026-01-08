@@ -389,7 +389,7 @@ db.inbox_messages.createIndex({ eventType: 1 });
 ```json
 {
   "peerDependencies": {
-    "@callairis/event-forge-core": "*",
+    "@prodforcode/event-forge-core": "*",
     "typeorm": "^0.3.0",
     "@nestjs/typeorm": "^10.0.0"
   }
@@ -401,7 +401,7 @@ db.inbox_messages.createIndex({ eventType: 1 });
 ```json
 {
   "peerDependencies": {
-    "@callairis/event-forge-core": "*",
+    "@prodforcode/event-forge-core": "*",
     "mongoose": "^8.0.0",
     "@nestjs/mongoose": "^10.0.0"
   }
@@ -413,7 +413,7 @@ db.inbox_messages.createIndex({ eventType: 1 });
 ```json
 {
   "peerDependencies": {
-    "@callairis/event-forge-core": "*",
+    "@prodforcode/event-forge-core": "*",
     "@golevelup/nestjs-rabbitmq": "^5.0.0"
   }
 }

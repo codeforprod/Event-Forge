@@ -1,4 +1,4 @@
-import { OutboxMessage, OutboxMessageStatus } from '@callairis/event-forge-core';
+import { OutboxMessage, OutboxMessageStatus } from '@prodforcode/event-forge-core';
 import {
   Column,
   CreateDateColumn,

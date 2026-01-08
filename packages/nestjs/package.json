@@ -1,5 +1,5 @@
 {
-  "name": "@callairis/event-forge-nestjs",
+  "name": "@prodforcode/event-forge-nestjs",
   "version": "1.0.0",
   "description": "NestJS module for Universal Inbox-Outbox Pattern",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
   "author": "Event-Forge",
   "license": "MIT",
   "dependencies": {
-    "@callairis/event-forge-core": "workspace:*"
+    "@prodforcode/event-forge-core": "workspace:*"
   },
   "devDependencies": {
     "@nestjs/common": "^10.0.0",

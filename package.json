@@ -1,5 +1,5 @@
 {
-  "name": "@callairis/event-forge-monorepo",
+  "name": "@prodforcode/event-forge-monorepo",
   "version": "1.0.0",
   "private": true,
   "description": "Universal Inbox-Outbox Pattern Library for reliable message delivery",

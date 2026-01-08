@@ -44,7 +44,7 @@ importers:
 
   packages/adapter-mongoose:
     dependencies:
-      '@callairis/event-forge-core':
+      '@prodforcode/event-forge-core':
         specifier: workspace:*
         version: link:../core
       mongoose:
@@ -69,7 +69,7 @@ importers:
 
   packages/adapter-typeorm:
     dependencies:
-      '@callairis/event-forge-core':
+      '@prodforcode/event-forge-core':
         specifier: workspace:*
         version: link:../core
       typeorm:
@@ -122,7 +122,7 @@ importers:
 
   packages/nestjs:
     dependencies:
-      '@callairis/event-forge-core':
+      '@prodforcode/event-forge-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -150,9 +150,6 @@ importers:
 
   packages/publisher-rabbitmq:
     dependencies:
-      '@callairis/event-forge-core':
-        specifier: workspace:*
-        version: link:../core
       '@golevelup/nestjs-rabbitmq':
         specifier: ^5.0.0
         version: 5.7.0(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -162,6 +159,9 @@ importers:
       '@nestjs/microservices':
         specifier: ^10.0.0
         version: 10.4.20(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(amqplib@0.10.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@prodforcode/event-forge-core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/jest':
         specifier: ^29.5.11
