@@ -3,6 +3,8 @@ name: CI/CD
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -13,7 +15,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -70,7 +72,7 @@ jobs:
   publish-npm:
     name: Publish NPM Packages
     needs: build-and-test
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
