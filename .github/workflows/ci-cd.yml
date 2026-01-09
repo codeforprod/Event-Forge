@@ -104,6 +104,7 @@ jobs:
         id: publish
         env:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run mode enabled - skipping actual publish"
@@ -116,8 +117,6 @@ jobs:
             echo "published=true" >> $GITHUB_OUTPUT
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish-python:
     name: Publish Python Package
