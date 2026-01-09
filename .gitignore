@@ -1,5 +1,6 @@
 .idea/
 .claude/tasks/
+.claude/knowledge-base/
 
 # Dependencies
 node_modules/
