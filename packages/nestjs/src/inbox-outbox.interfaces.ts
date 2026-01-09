@@ -1,3 +1,4 @@
+import { InjectionToken, ModuleMetadata, OptionalFactoryDependency, Type } from '@nestjs/common';
 import {
   IOutboxRepository,
   IInboxRepository,
@@ -5,7 +6,6 @@ import {
   OutboxConfig,
   InboxConfig,
 } from '@prodforcode/event-forge-core';
-import { InjectionToken, ModuleMetadata, OptionalFactoryDependency, Type } from '@nestjs/common';
 
 /**
  * Options for configuring the Inbox-Outbox module

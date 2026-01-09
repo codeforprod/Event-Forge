@@ -1,0 +1,181 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (skip actual publishing)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            packages/*/dist
+            packages/*/lib
+            packages/*/build
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Run tests
+        run: pnpm test
+
+  publish-npm:
+    name: Publish NPM Packages
+    needs: build-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+      dry_run: ${{ steps.publish.outputs.dry_run }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Publish NPM packages
+        id: publish
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run mode enabled - skipping actual publish"
+            pnpm -r publish --filter "@prodforcode/*" --dry-run --access public --no-git-checks
+            echo "published=false" >> $GITHUB_OUTPUT
+            echo "dry_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "Publishing packages to NPM..."
+            pnpm -r publish --filter "@prodforcode/*" --access public --no-git-checks
+            echo "published=true" >> $GITHUB_OUTPUT
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-python:
+    name: Publish Python Package
+    needs: publish-npm
+    if: needs.publish-npm.outputs.published == 'true' || needs.publish-npm.outputs.dry_run == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/event-forge-inbox-outbox
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+
+      - name: Setup Node.js (for version sync)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync Python version with core package
+        run: pnpm run sync-versions
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip build
+
+      - name: Build Python package
+        working-directory: packages/python
+        run: python -m build
+
+      - name: Publish to PyPI (dry-run)
+        if: needs.publish-npm.outputs.dry_run == 'true'
+        working-directory: packages/python
+        run: |
+          echo "Dry run mode - checking package validity without publishing"
+          python -m pip install twine
+          twine check dist/*
+          echo "Package validation successful (dry-run)"
+
+      - name: Publish to PyPI
+        if: needs.publish-npm.outputs.published == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/python/dist/
+          attestations: true

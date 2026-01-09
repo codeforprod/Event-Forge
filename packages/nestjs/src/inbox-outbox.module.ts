@@ -1,3 +1,4 @@
+import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
 import {
   OutboxService,
   InboxService,
@@ -5,7 +6,6 @@ import {
   IInboxRepository,
   IMessagePublisher,
 } from '@prodforcode/event-forge-core';
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
 
 import {
   INBOX_OUTBOX_OPTIONS,
