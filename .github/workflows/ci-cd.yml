@@ -13,7 +13,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -55,6 +55,7 @@ jobs:
             packages/*/dist
             packages/*/lib
             packages/*/build
+          if-no-files-found: error
           retention-days: 1
 
       - name: Type check
@@ -101,15 +102,17 @@ jobs:
 
       - name: Publish NPM packages
         id: publish
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run mode enabled - skipping actual publish"
-            pnpm -r exec npm publish --dry-run --access public --no-git-checks
+            pnpm -r publish --filter "@prodforcode/*" --dry-run --access public --no-git-checks
             echo "published=false" >> $GITHUB_OUTPUT
             echo "dry_run=true" >> $GITHUB_OUTPUT
           else
             echo "Publishing packages to NPM..."
-            pnpm -r exec npm publish --access public --no-git-checks
+            pnpm -r publish --filter "@prodforcode/*" --access public --no-git-checks
             echo "published=true" >> $GITHUB_OUTPUT
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
