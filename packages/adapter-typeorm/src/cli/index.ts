@@ -8,13 +8,15 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
+
 import { Command } from 'commander';
+
 import { createMigrationCommand } from './migration-command';
 
 // Read version from package.json
 const packageJson = JSON.parse(
   readFileSync(join(__dirname, '../../package.json'), 'utf-8')
-);
+) as { version: string };
 
 const program = new Command();
 
