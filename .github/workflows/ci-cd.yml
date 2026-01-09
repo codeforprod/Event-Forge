@@ -47,11 +47,21 @@ jobs:
       - name: Build all packages
         run: pnpm run build
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            packages/*/dist
+            packages/*/lib
+            packages/*/build
+          retention-days: 1
+
       - name: Type check
         run: pnpm run typecheck
 
       - name: Lint
-        run: pnpm run lint || true
+        run: pnpm run lint
 
       - name: Run tests
         run: pnpm test
@@ -63,12 +73,11 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.publish.outputs.published }}
+      dry_run: ${{ steps.publish.outputs.dry_run }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -85,8 +94,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm run build
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
 
       - name: Publish NPM packages
         id: publish
@@ -95,10 +106,12 @@ jobs:
             echo "Dry run mode enabled - skipping actual publish"
             pnpm -r exec npm publish --dry-run --access public --no-git-checks
             echo "published=false" >> $GITHUB_OUTPUT
+            echo "dry_run=true" >> $GITHUB_OUTPUT
           else
             echo "Publishing packages to NPM..."
             pnpm -r exec npm publish --access public --no-git-checks
             echo "published=true" >> $GITHUB_OUTPUT
+            echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -106,7 +119,7 @@ jobs:
   publish-python:
     name: Publish Python Package
     needs: publish-npm
-    if: needs.publish-npm.outputs.published == 'true'
+    if: needs.publish-npm.outputs.published == 'true' || needs.publish-npm.outputs.dry_run == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -148,7 +161,17 @@ jobs:
         working-directory: packages/python
         run: python -m build
 
+      - name: Publish to PyPI (dry-run)
+        if: needs.publish-npm.outputs.dry_run == 'true'
+        working-directory: packages/python
+        run: |
+          echo "Dry run mode - checking package validity without publishing"
+          python -m pip install twine
+          twine check dist/*
+          echo "Package validation successful (dry-run)"
+
       - name: Publish to PyPI
+        if: needs.publish-npm.outputs.published == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/python/dist/
