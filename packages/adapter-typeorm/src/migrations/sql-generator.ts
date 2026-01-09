@@ -87,7 +87,8 @@ export function getEventForgeDownSQL(options: MigrationOptions = {}): string {
  * ```
  */
 export function generateMigrationClass(options: MigrationOptions = {}): string {
-  const timestamp = Date.now();
+  const now = new Date();
+  const timestamp = now.getTime();
   const className = `EventForgeMigration${timestamp}`;
 
   const upSQL = getEventForgeUpSQL(options)
@@ -104,7 +105,7 @@ export function generateMigrationClass(options: MigrationOptions = {}): string {
 
 /**
  * Event-Forge Migration: Creates outbox_messages and inbox_messages tables
- * Generated on: ${new Date().toISOString()}
+ * Generated on: ${now.toISOString()}
  */
 export class ${className} implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
