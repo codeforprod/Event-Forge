@@ -5,9 +5,11 @@
  * without requiring an active TypeORM connection.
  */
 
-import { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
+
+import { Command } from 'commander';
+
 import {
   generateMigrationClass,
   generateRawSQLFile,
@@ -55,8 +57,10 @@ function generateMigrationContent(
     case 'sql':
     case 'stdout':
       return generateRawSQLFile(options);
-    default:
-      throw new Error(`Unsupported format: ${format}`);
+    default: {
+      const exhaustiveCheck: never = format;
+      throw new Error(`Unsupported format: ${String(exhaustiveCheck)}`);
+    }
   }
 }
 
@@ -189,7 +193,7 @@ export function createMigrationCommand(): Command {
     .option('--schema <name>', 'Database schema name', 'public')
     .option('--outbox-table <name>', 'Outbox table name', 'outbox_messages')
     .option('--inbox-table <name>', 'Inbox table name', 'inbox_messages')
-    .action((options) => {
+    .action((options: CLIOptions) => {
       executeMigrationGenerate(options);
     });
 
