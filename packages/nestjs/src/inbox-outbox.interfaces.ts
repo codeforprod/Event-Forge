@@ -8,6 +8,17 @@ import {
 } from '@prodforcode/event-forge-core';
 
 /**
+ * Lifecycle configuration options
+ */
+export interface LifecycleOptions {
+  /**
+   * Whether to automatically start outbox polling on application bootstrap
+   * @default true
+   */
+  autoStart?: boolean;
+}
+
+/**
  * Options for configuring the Inbox-Outbox module
  */
 export interface InboxOutboxModuleOptions {
@@ -20,6 +31,7 @@ export interface InboxOutboxModuleOptions {
     config?: Partial<InboxConfig>;
   };
   publisher?: Type<IMessagePublisher> | IMessagePublisher;
+  lifecycle?: LifecycleOptions;
 }
 
 /**
