@@ -13,25 +13,25 @@ import {
  * Optimized for PostgreSQL with proper indexes and unique constraint for deduplication
  */
 @Entity('inbox_messages')
-@Index(['messageId', 'source'], { unique: true })
-@Index(['eventType'])
-@Index(['status'])
-@Index(['createdAt'])
-@Index(['receivedAt'])
+@Index('idx_inbox_unique', ['messageId', 'source'], { unique: true })
+@Index('idx_inbox_event_type', ['eventType'])
+@Index('idx_inbox_status', ['status'])
+@Index('idx_inbox_created_at', ['createdAt'])
+@Index('idx_inbox_received_at', ['receivedAt'])
 export class InboxMessageEntity implements InboxMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'message_id', type: 'varchar', length: 255 })
   messageId: string;
 
   @Column({ type: 'varchar', length: 255 })
   source: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'event_type', type: 'varchar', length: 255 })
   eventType: string;
 
-  @Column({ type: 'simple-json' })
+  @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
   @Column({
@@ -41,15 +41,15 @@ export class InboxMessageEntity implements InboxMessage {
   })
   status: InboxMessageStatus;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'processed_at', type: 'timestamptz', nullable: true })
   processedAt?: Date;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'received_at' })
   receivedAt: Date;
 }

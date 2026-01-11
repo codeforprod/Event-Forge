@@ -14,29 +14,29 @@ import {
  * Optimized for PostgreSQL with proper indexes
  */
 @Entity('outbox_messages')
-@Index(['status', 'scheduledAt', 'createdAt'], {
+@Index('idx_outbox_pending', ['status', 'scheduledAt', 'createdAt'], {
   where: 'status IN (\'pending\', \'failed\')',
 })
-@Index(['aggregateType', 'aggregateId'])
-@Index(['eventType'])
-@Index(['createdAt'])
+@Index('idx_outbox_aggregate', ['aggregateType', 'aggregateId'])
+@Index('idx_outbox_event_type', ['eventType'])
+@Index('idx_outbox_created_at', ['createdAt'])
 export class OutboxMessageEntity implements OutboxMessage {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'aggregate_type', type: 'varchar', length: 255 })
   aggregateType: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'aggregate_id', type: 'varchar', length: 255 })
   aggregateId: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ name: 'event_type', type: 'varchar', length: 255 })
   eventType: string;
 
-  @Column({ type: 'simple-json' })
+  @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
-  @Column({ type: 'simple-json', nullable: true })
+  @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, unknown>;
 
   @Column({
@@ -46,27 +46,27 @@ export class OutboxMessageEntity implements OutboxMessage {
   })
   status: OutboxMessageStatus;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({ name: 'retry_count', type: 'int', default: 0 })
   retryCount: number;
 
-  @Column({ type: 'int', default: 3 })
+  @Column({ name: 'max_retries', type: 'int', default: 5 })
   maxRetries: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'scheduled_at', type: 'timestamptz', default: () => 'now()' })
   scheduledAt?: Date;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ name: 'locked_by', type: 'varchar', length: 255, nullable: true })
   lockedBy?: string;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ name: 'locked_at', type: 'timestamptz', nullable: true })
   lockedAt?: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
