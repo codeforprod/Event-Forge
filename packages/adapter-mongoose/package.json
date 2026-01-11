@@ -1,6 +1,6 @@
 {
   "name": "@prodforcode/event-forge-mongoose",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Mongoose adapter for Universal Inbox-Outbox Pattern (MongoDB)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

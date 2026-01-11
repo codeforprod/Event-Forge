@@ -1,6 +1,6 @@
 {
   "name": "@prodforcode/event-forge-rabbitmq",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "RabbitMQ publishers for Universal Inbox-Outbox Pattern",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +36,7 @@
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
-    "@golevelup/nestjs-rabbitmq": "^5.0.0 || ^6.0.0",
+    "@golevelup/nestjs-rabbitmq": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "@nestjs/common": "^10.0.0 || ^11.0.0",
     "@nestjs/microservices": "^10.0.0 || ^11.0.0"
   },

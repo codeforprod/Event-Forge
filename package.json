@@ -1,6 +1,6 @@
 {
   "name": "@prodforcode/event-forge-monorepo",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "Universal Inbox-Outbox Pattern Library for reliable message delivery",
   "workspaces": [
