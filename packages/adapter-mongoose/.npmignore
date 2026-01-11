@@ -1,0 +1,32 @@
+# Source files (keep only compiled output)
+src/
+*.ts
+!*.d.ts
+
+# Tests
+__tests__/
+*.test.ts
+*.spec.ts
+jest.config.js
+coverage/
+
+# Config files
+tsconfig.json
+tsconfig.*.json
+.eslintrc*
+.prettierrc*
+
+# Build artifacts
+*.tsbuildinfo
+.turbo/
+
+# CI/CD
+.github/
+
+# Documentation (keep in git, exclude from npm)
+*.md
+!README.md
+
+# Explicitly include dist (overrides .gitignore)
+!dist/
+!dist/**

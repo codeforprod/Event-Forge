@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Verify npm pack includes dist/
+        run: |
+          echo "Verifying npm pack for all packages..."
+
+          # Function to verify package includes dist/ files
+          verify_package() {
+            local pkg_dir=$1
+            local pkg_name=$2
+
+            echo "Checking $pkg_name..."
+            cd "$pkg_dir"
+
+            # Pack and list contents
+            pnpm pack 2>&1 > /dev/null
+            tarball=$(ls *.tgz)
+
+            # Check if dist/*.js files exist in tarball
+            if tar -tzf "$tarball" | grep -q "dist/.*\.js"; then
+              echo "✅ $pkg_name includes dist/ files"
+              rm "$tarball"
+              cd - > /dev/null
+              return 0
+            else
+              echo "❌ ERROR: dist/ files missing in $pkg_name"
+              rm "$tarball"
+              cd - > /dev/null
+              return 1
+            fi
+          }
+
+          # Exit on any error
+          set -e
+
+          # Verify all packages
+          cd packages
+          verify_package "core" "@prodforcode/event-forge-core"
+          verify_package "adapter-typeorm" "@prodforcode/event-forge-typeorm"
+          verify_package "adapter-mongoose" "@prodforcode/event-forge-mongoose"
+          verify_package "publisher-rabbitmq" "@prodforcode/event-forge-rabbitmq"
+          verify_package "nestjs" "@prodforcode/event-forge-nestjs"
+
+          echo ""
+          echo "✅ All packages include dist/ files correctly"
