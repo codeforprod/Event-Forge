@@ -59,8 +59,8 @@ jobs:
             local pkg_dir=$1
             local pkg_name=$2
 
-            cd "$pkg_dir"
             echo "Checking $pkg_name..."
+            cd "$pkg_dir"
 
             # Pack and list contents
             pnpm pack 2>&1 > /dev/null
@@ -70,10 +70,12 @@ jobs:
             if tar -tzf "$tarball" | grep -q "dist/.*\.js"; then
               echo "✅ $pkg_name includes dist/ files"
               rm "$tarball"
+              cd - > /dev/null
               return 0
             else
               echo "❌ ERROR: dist/ files missing in $pkg_name"
               rm "$tarball"
+              cd - > /dev/null
               return 1
             fi
           }
