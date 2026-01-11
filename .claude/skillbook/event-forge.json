@@ -534,12 +534,300 @@
       "tags": ["testing", "edge-cases", "validation", "robustness"]
     }
   ],
+    {
+      "id": "empty-string-property-detection",
+      "category": "best-practices",
+      "title": "Detecting presence of empty string properties in JavaScript/TypeScript",
+      "problem": "Need to distinguish between missing property and empty string property for optional string metadata fields",
+      "solution": "Use 'in' operator instead of falsy check to detect property presence",
+      "implementation": {
+        "wrong_approach": "if (!object?.property) return null; // Treats empty string as absent",
+        "correct_approach": "if (!object || !('property' in object)) return null; // Detects presence regardless of value",
+        "validation_pattern": "Check property existence with 'in', then validate type and value separately"
+      },
+      "use_cases": [
+        "Optional routing keys where empty string is valid (fanout exchanges)",
+        "Custom exchange names that could be empty",
+        "Any metadata field where empty string has semantic meaning"
+      ],
+      "benefits": [
+        "Correctly handles empty strings as valid values",
+        "Clear separation between absent and empty",
+        "Type-safe property detection",
+        "Works with optional chaining"
+      ],
+      "code_example": "// WRONG - treats empty string as absent\nif (!message.metadata?.routingKey) return null;\n\n// CORRECT - detects property presence\nif (!message.metadata || !('routingKey' in message.metadata)) return null;\nif (typeof message.metadata.routingKey !== 'string') return null;\nreturn message.metadata.routingKey; // Can be empty string",
+      "tags": ["javascript", "typescript", "validation", "empty-string", "property-detection"]
+    }
+  ],
+  "patterns": [
+    {
+      "id": "flexible-message-routing",
+      "category": "architecture",
+      "name": "Flexible message routing via metadata overrides",
+      "context": "Message publisher that needs to support both default routing and custom routing per message",
+      "pattern": "Extract optional metadata fields to override default routing behavior while maintaining backward compatibility",
+      "components": [
+        "Default routing builder - Constructs routing key from message properties",
+        "Metadata extractors - Validate and extract custom routing/exchange from metadata",
+        "Override logic - Apply custom values when present, fallback to defaults",
+        "Type validation - Ensure metadata fields are correct types before use"
+      ],
+      "implementation_details": {
+        "routing_key_override": "metadata.routingKey (string) overrides default {aggregateType}.{eventType}",
+        "exchange_override": "metadata.exchange (string) overrides default exchange (immediate messages only)",
+        "validation": "Use 'in' operator for property detection, typeof for type checks",
+        "fallback": "Invalid values gracefully fall back to default behavior"
+      },
+      "trade_offs": {
+        "pros": [
+          "Flexible routing without breaking backward compatibility",
+          "Per-message control over routing",
+          "Supports advanced patterns (fanout, priority queues)",
+          "Type-safe with graceful fallback"
+        ],
+        "cons": [
+          "More complex routing logic",
+          "Need comprehensive edge case testing",
+          "Documentation must explain override behavior clearly"
+        ]
+      },
+      "when_to_use": [
+        "Need per-message routing control",
+        "Supporting multiple routing patterns in same publisher",
+        "Gradual migration from default to custom routing",
+        "Multi-tenant systems with routing isolation"
+      ],
+      "when_to_avoid": [
+        "Single fixed routing pattern",
+        "No need for runtime routing decisions",
+        "Simple point-to-point messaging"
+      ],
+      "related_patterns": ["dual-exchange-delayed-messages", "metadata-driven-configuration"]
+    },
+    {
+      "id": "monorepo-publishing-architecture",
+      "category": "architecture",
+      "name": "Monorepo multi-platform publishing architecture",
+      "context": "Publishing packages to multiple registries (NPM + PyPI) from single monorepo",
+      "pattern": "Use Changesets for NPM version management, sync script for Python versions, GitHub Actions for automation",
+      "components": [
+        "Changesets - NPM version management and changelog",
+        "Version sync script - Synchronize NPM to Python",
+        "GitHub Actions workflows - Automation (release.yml for publishing, ci.yml for validation)",
+        "Trusted Publishers - Secure PyPI publishing without tokens"
+      ],
+      "trade_offs": {
+        "pros": [
+          "Single source of truth for versions",
+          "Automated version bumps and publishing",
+          "Secure (no manual tokens for PyPI)",
+          "Clear developer workflow"
+        ],
+        "cons": [
+          "Requires external setup (NPM token, PyPI trusted publisher config)",
+          "Learning curve for Changesets workflow",
+          "Two-step process (version PR, then publish)"
+        ]
+      },
+      "when_to_use": "Multi-platform monorepos with frequent releases",
+      "when_to_avoid": "Single package projects or infrequent manual releases"
+    },
+    {
+      "id": "nestjs-lifecycle-automation",
+      "category": "architecture",
+      "name": "Automatic lifecycle management in NestJS libraries",
+      "context": "Building NestJS libraries that manage background services requiring start/stop",
+      "pattern": "Provide optional lifecycle service that automatically manages service lifecycle via NestJS hooks",
+      "components": [
+        "Lifecycle service implementing OnApplicationBootstrap and OnApplicationShutdown",
+        "Configuration option (lifecycle.autoStart) to enable/disable automatic management",
+        "Conditional provider registration based on configuration",
+        "Service export for manual control when autoStart is disabled"
+      ],
+      "trade_offs": {
+        "pros": [
+          "Zero boilerplate for consumers (works out of the box)",
+          "Consistent lifecycle management",
+          "Graceful shutdown handling",
+          "Optional - can be disabled for custom control"
+        ],
+        "cons": [
+          "Adds complexity to module registration logic",
+          "Less explicit control (hidden lifecycle management)",
+          "Requires understanding of conditional providers"
+        ]
+      },
+      "when_to_use": "Libraries managing background services (polling, scheduled tasks, connections)",
+      "when_to_avoid": "Simple libraries without lifecycle needs or stateless utilities"
+    },
+    {
+      "id": "dual-exchange-delayed-messages",
+      "category": "architecture",
+      "name": "Dual exchange pattern for delayed message delivery",
+      "context": "Message publisher needs to support both immediate and delayed delivery without performance penalty",
+      "pattern": "Use two separate exchanges (direct + delayed) with automatic selection based on message metadata",
+      "components": [
+        "Direct exchange - Handles immediate messages (standard topic exchange)",
+        "Delayed exchange - Handles delayed messages (x-delayed-message type)",
+        "Selection logic - Routes to appropriate exchange based on metadata.delay presence",
+        "Header mapping - Converts metadata.delay to x-delay header for delayed exchange"
+      ],
+      "implementation_details": {
+        "routing_logic": "if (delay !== null) use delayedExchange else use directExchange",
+        "header_transformation": "metadata.delay (milliseconds) → x-delay header (milliseconds)",
+        "routing_key_format": "{aggregateType}.{eventType}"
+      },
+      "trade_offs": {
+        "pros": [
+          "No delay overhead for immediate messages",
+          "Clear separation of concerns (immediate vs delayed)",
+          "Can monitor each exchange independently",
+          "Delayed exchange failure doesn't affect immediate delivery"
+        ],
+        "cons": [
+          "Requires two exchange configurations",
+          "Requires rabbitmq_delayed_message_exchange plugin",
+          "More complex RabbitMQ topology"
+        ]
+      },
+      "when_to_use": [
+        "Mix of immediate and delayed messages in same system",
+        "High-volume immediate messages with occasional delayed ones",
+        "Need separate monitoring/metrics for immediate vs delayed"
+      ],
+      "when_to_avoid": [
+        "Only delayed messages (single delayed exchange sufficient)",
+        "Cannot install RabbitMQ plugins",
+        "Simple pub-sub without delay requirements"
+      ],
+      "related_patterns": ["single-exchange-with-ttl", "queue-level-delays"]
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "falsy-check-for-empty-strings",
+      "name": "Using falsy checks to detect optional string properties",
+      "problem": "Using !object?.property to check if optional string property is present",
+      "why_bad": [
+        "Empty strings are falsy - treated as absent when they may be intentional",
+        "Cannot distinguish between undefined/null and empty string",
+        "Breaks use cases where empty string has semantic meaning (fanout routing)",
+        "Silent bugs - no error, just wrong behavior"
+      ],
+      "better_approach": "Use 'in' operator to check property existence: !('property' in object)",
+      "example": {
+        "wrong": "if (!metadata?.routingKey) return null; // Treats '' as absent",
+        "correct": "if (!metadata || !('routingKey' in metadata)) return null; // Detects '' as present"
+      },
+      "tags": ["javascript", "typescript", "validation", "empty-string", "anti-pattern"]
+    },
+    {
+      "id": "manual-version-updates",
+      "name": "Manual version updates in monorepos",
+      "problem": "Manually updating version numbers in multiple package.json files",
+      "why_bad": [
+        "Error-prone (easy to miss packages)",
+        "Time-consuming",
+        "No automatic changelog",
+        "Inter-package dependency versions can get out of sync"
+      ],
+      "better_approach": "Use Changesets with linked configuration for automatic version management",
+      "tags": ["versioning", "monorepo", "manual-work"]
+    },
+    {
+      "id": "pypi-api-tokens-in-ci",
+      "name": "Using PyPI API tokens in GitHub Actions",
+      "problem": "Storing PyPI API tokens as GitHub secrets",
+      "why_bad": [
+        "Security risk (tokens can leak)",
+        "Manual token rotation required",
+        "No automatic package attestations",
+        "Less secure than OIDC"
+      ],
+      "better_approach": "Use PyPI Trusted Publishers with GitHub Actions OIDC",
+      "tags": ["security", "pypi", "tokens", "oidc"]
+    },
+    {
+      "id": "pessimistic-lock-without-transaction",
+      "name": "Using pessimistic locks outside transactions in TypeORM",
+      "problem": "Calling setLock('pessimistic_write') on query builder without wrapping in transaction",
+      "why_bad": [
+        "Throws PessimisticLockTransactionRequiredError at runtime",
+        "Violates TypeORM's transaction requirements",
+        "Can lead to race conditions if not properly handled",
+        "Tests may pass but production fails"
+      ],
+      "better_approach": "Always wrap pessimistic lock operations in dataSource.transaction()",
+      "example": {
+        "wrong": "this.repository.createQueryBuilder().setLock('pessimistic_write').getMany()",
+        "correct": "this.dataSource.transaction(async (manager) => manager.getRepository(Entity).createQueryBuilder().setLock('pessimistic_write').getMany())"
+      },
+      "tags": ["typeorm", "pessimistic-lock", "transaction", "anti-pattern"]
+    },
+    {
+      "id": "manual-lifecycle-in-consumers",
+      "name": "Requiring consumers to manually manage service lifecycle",
+      "problem": "NestJS library requires every consumer to add onApplicationBootstrap/onApplicationShutdown hooks",
+      "why_bad": [
+        "Boilerplate code in every consumer",
+        "Easy to forget, leading to resource leaks",
+        "Inconsistent implementation across consumers",
+        "Poor developer experience"
+      ],
+      "better_approach": "Provide automatic lifecycle management with opt-out configuration",
+      "example": {
+        "bad": "Consumer must: constructor(service) {} onApplicationBootstrap() { service.start(); }",
+        "good": "Library handles automatically via lifecycle service"
+      },
+      "tags": ["nestjs", "lifecycle", "dx", "boilerplate"]
+    },
+    {
+      "id": "single-exchange-for-all-messages",
+      "name": "Using single exchange for both immediate and delayed messages",
+      "problem": "Routing all messages (immediate and delayed) through x-delayed-message exchange",
+      "why_bad": [
+        "Performance overhead: All messages go through delay plugin even if delay=0",
+        "Cannot monitor immediate vs delayed separately",
+        "Plugin failure affects all message delivery",
+        "Wastes resources checking delay for immediate messages"
+      ],
+      "better_approach": "Use dual exchange pattern: direct exchange for immediate, delayed exchange for delayed messages",
+      "tags": ["rabbitmq", "performance", "architecture", "delayed-messages"]
+    },
+    {
+      "id": "missing-delay-validation",
+      "name": "Not validating delay values before publishing",
+      "problem": "Passing unvalidated metadata.delay directly to message broker without type/range checks",
+      "why_bad": [
+        "Runtime errors from invalid types (string, object, null)",
+        "Unexpected behavior from negative delays",
+        "NaN or undefined causes broker errors",
+        "No fallback strategy for invalid input"
+      ],
+      "better_approach": "Validate delay is number >= 0, fall back to immediate delivery for invalid values",
+      "tags": ["validation", "type-safety", "error-handling", "delayed-messages"]
+    },
+    {
+      "id": "insufficient-edge-case-testing",
+      "name": "Testing only happy path for optional numeric fields",
+      "problem": "Only testing valid delay values without covering invalid input scenarios",
+      "why_bad": [
+        "Production failures from unexpected user input",
+        "No visibility into how code handles edge cases",
+        "Regressions go undetected during refactoring",
+        "Unclear fallback behavior"
+      ],
+      "better_approach": "Test 8+ edge cases: negative, zero, string, null, undefined, NaN, object, Infinity",
+      "tags": ["testing", "edge-cases", "validation", "robustness"]
+    }
+  ],
   "metadata": {
-    "total_skills": 12,
-    "total_patterns": 3,
-    "total_anti_patterns": 7,
-    "last_updated": "2026-01-11T15:22:00Z",
+    "total_skills": 13,
+    "total_patterns": 4,
+    "total_anti_patterns": 8,
+    "last_updated": "2026-01-11T15:38:00Z",
     "created_at": "2026-01-05T00:00:00Z",
-    "last_task": "AIRIS-47: feat(rabbitmq): add x-delayed-message support with dual exchange architecture"
+    "last_task": "AIRIS-48: feat(rabbitmq): add flexible routing via metadata.routingKey and metadata.exchange"
   }
 }

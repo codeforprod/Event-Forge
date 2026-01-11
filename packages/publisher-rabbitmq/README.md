@@ -68,7 +68,7 @@ const publisher = new DelayedMessagePublisher(
   }
 );
 
-// Immediate message (uses directExchange)
+// Immediate message (uses directExchange, default routing)
 await publisher.publish(message);
 
 // Delayed message (uses delayedExchange)
@@ -78,14 +78,42 @@ await publisher.publish({
     delay: 5000  // Delay in milliseconds
   }
 });
+
+// Custom routing key (override default {aggregateType}.{eventType})
+await publisher.publish({
+  ...message,
+  metadata: {
+    routingKey: 'sms.priority.high'  // Custom routing key
+  }
+});
+
+// Custom exchange for immediate messages (e.g., fanout exchange)
+await publisher.publish({
+  ...message,
+  metadata: {
+    exchange: 'notifications.fanout',  // Custom exchange (immediate only)
+    routingKey: ''  // Empty for fanout exchanges
+  }
+});
 ```
 
 #### Message Routing Logic
 
-The DelayedMessagePublisher automatically selects the appropriate exchange based on the presence of `metadata.delay`:
+The DelayedMessagePublisher provides flexible routing through metadata overrides:
 
-- **No delay or invalid delay**: Uses `directExchange` for immediate delivery
-- **Valid delay (number >= 0)**: Uses `delayedExchange` with `x-delay` header set
+**Routing Key:**
+- If `metadata.routingKey` is provided: Uses the custom routing key
+- Otherwise: Uses default format `{aggregateType}.{eventType}`
+
+**Exchange Selection:**
+- If `metadata.exchange` is provided (immediate messages only): Uses the custom exchange
+- If `metadata.delay` is present: Uses `delayedExchange` with `x-delay` header
+- Otherwise: Uses `directExchange` for immediate delivery
+
+**Important Notes:**
+- `metadata.exchange` only applies to immediate messages (ignored when `metadata.delay` is present)
+- For delayed messages, the configured `delayedExchange` is always used
+- `metadata.routingKey` works for both immediate and delayed messages
 
 #### Metadata Delay Format
 
