@@ -80,6 +80,9 @@ jobs:
             fi
           }
 
+          # Exit on any error
+          set -e
+
           # Verify all packages
           cd packages
           verify_package "core" "@prodforcode/event-forge-core"
