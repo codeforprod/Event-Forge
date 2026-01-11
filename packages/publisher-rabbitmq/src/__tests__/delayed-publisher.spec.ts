@@ -884,4 +884,335 @@ describe('DelayedMessagePublisher', () => {
       );
     });
   });
+
+  describe('custom routing key via metadata.routingKey', () => {
+    it('should use custom routing key when provided', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: 'sms.priority.high' },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'sms.priority.high',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should use custom routing key with delayed message', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: {
+          routingKey: 'notifications.urgent',
+          delay: 5000,
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.delayed',
+        'notifications.urgent',
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-delay': 5000,
+          }),
+        }),
+      );
+    });
+
+    it('should use empty string routing key for fanout exchanges', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: '' },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        '',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default routing key when routingKey is not a string', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: 123 as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default routing key when routingKey is null', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: null as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default routing key when routingKey is undefined', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: undefined as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default routing key when routingKey is an object', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { routingKey: { key: 'value' } as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('custom exchange via metadata.exchange', () => {
+    it('should use custom exchange for immediate messages', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { exchange: 'notifications.fanout', routingKey: '' },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'notifications.fanout',
+        '',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should ignore custom exchange for delayed messages', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: {
+          exchange: 'custom.exchange',
+          delay: 5000,
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.delayed',
+        'User.user.created',
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-delay': 5000,
+          }),
+        }),
+      );
+    });
+
+    it('should fallback to default exchange when exchange is not a string', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { exchange: 123 as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default exchange when exchange is null', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { exchange: null as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default exchange when exchange is undefined', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { exchange: undefined as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should fallback to default exchange when exchange is an object', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: { exchange: { name: 'test' } as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.direct',
+        'User.user.created',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('combined custom routing and exchange', () => {
+    it('should use both custom routing key and custom exchange', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: {
+          exchange: 'custom.exchange',
+          routingKey: 'custom.routing.key',
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'custom.exchange',
+        'custom.routing.key',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should use custom routing key with delayed message (ignoring custom exchange)', async () => {
+      // Arrange
+      const message = createMockMessage({
+        metadata: {
+          exchange: 'should.be.ignored',
+          routingKey: 'custom.routing.key',
+          delay: 10000,
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      // Act
+      await publisher.publish(message);
+
+      // Assert
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.delayed',
+        'custom.routing.key',
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-delay': 10000,
+          }),
+        }),
+      );
+    });
+  });
 });
