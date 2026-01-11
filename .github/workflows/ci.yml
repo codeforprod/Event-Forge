@@ -53,9 +53,38 @@ jobs:
       - name: Verify npm pack includes dist/
         run: |
           echo "Verifying npm pack for all packages..."
-          cd packages/core && pnpm pack --dry-run | grep -E "dist/.*\.js" || (echo "ERROR: dist/ files missing in core package" && exit 1)
-          cd ../adapter-typeorm && pnpm pack --dry-run | grep -E "dist/.*\.js" || (echo "ERROR: dist/ files missing in adapter-typeorm package" && exit 1)
-          cd ../adapter-mongoose && pnpm pack --dry-run | grep -E "dist/.*\.js" || (echo "ERROR: dist/ files missing in adapter-mongoose package" && exit 1)
-          cd ../publisher-rabbitmq && pnpm pack --dry-run | grep -E "dist/.*\.js" || (echo "ERROR: dist/ files missing in publisher-rabbitmq package" && exit 1)
-          cd ../nestjs && pnpm pack --dry-run | grep -E "dist/.*\.js" || (echo "ERROR: dist/ files missing in nestjs package" && exit 1)
+
+          # Function to verify package includes dist/ files
+          verify_package() {
+            local pkg_dir=$1
+            local pkg_name=$2
+
+            cd "$pkg_dir"
+            echo "Checking $pkg_name..."
+
+            # Pack and list contents
+            pnpm pack 2>&1 > /dev/null
+            tarball=$(ls *.tgz)
+
+            # Check if dist/*.js files exist in tarball
+            if tar -tzf "$tarball" | grep -q "dist/.*\.js"; then
+              echo "✅ $pkg_name includes dist/ files"
+              rm "$tarball"
+              return 0
+            else
+              echo "❌ ERROR: dist/ files missing in $pkg_name"
+              rm "$tarball"
+              return 1
+            fi
+          }
+
+          # Verify all packages
+          cd packages
+          verify_package "core" "@prodforcode/event-forge-core"
+          verify_package "adapter-typeorm" "@prodforcode/event-forge-typeorm"
+          verify_package "adapter-mongoose" "@prodforcode/event-forge-mongoose"
+          verify_package "publisher-rabbitmq" "@prodforcode/event-forge-rabbitmq"
+          verify_package "nestjs" "@prodforcode/event-forge-nestjs"
+
+          echo ""
           echo "✅ All packages include dist/ files correctly"
