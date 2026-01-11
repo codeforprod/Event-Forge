@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.2",
   "service": "event-forge",
   "description": "Skillbook for Event-Forge project - patterns, learnings, and best practices",
   "skills": [
@@ -237,6 +237,100 @@
         "groups": "1. External packages (@namespace, npm packages), 2. Empty line, 3. Internal imports (./relative)"
       },
       "tags": ["eslint", "import-order", "code-style", "linting"]
+    },
+    {
+      "id": "rabbitmq-x-delay-header-mapping",
+      "category": "best-practices",
+      "title": "Mapping metadata.delay to x-delay header for RabbitMQ delayed messages",
+      "problem": "Need to map application-level delay metadata to RabbitMQ-specific x-delay header",
+      "solution": "Extract and validate metadata.delay field, then map to x-delay header only for valid delays",
+      "implementation": {
+        "validation_rules": [
+          "Must be a number type",
+          "Must be >= 0 (non-negative)",
+          "Reject: string, null, undefined, NaN, object, negative numbers",
+          "Accept: positive numbers, zero (treated as immediate), Infinity"
+        ],
+        "extraction_pattern": "Check existence → type check → range check → return number or null",
+        "header_mapping": "Only add x-delay header if delay is valid number >= 0"
+      },
+      "benefits": [
+        "Type-safe delay handling",
+        "Graceful degradation to immediate delivery on invalid input",
+        "Clear separation between metadata (application) and headers (broker)",
+        "Prevents runtime errors from invalid delay values"
+      ],
+      "code_example": "private extractDelay(message: OutboxMessage): number | null {\n  if (!message.metadata?.delay) return null;\n  const delay = message.metadata.delay;\n  if (typeof delay !== 'number') return null;\n  if (delay < 0) return null;\n  return delay;\n}",
+      "tags": ["rabbitmq", "validation", "type-safety", "header-mapping", "delayed-messages"]
+    },
+    {
+      "id": "comprehensive-edge-case-testing",
+      "category": "testing",
+      "title": "Testing edge cases for optional numeric fields with fallback behavior",
+      "problem": "Need to ensure robust handling of invalid input for optional numeric configuration fields",
+      "solution": "Create comprehensive test suite covering all invalid value types and edge cases",
+      "implementation": {
+        "test_categories": [
+          "Type mismatches (string, object, null, undefined)",
+          "Special numeric values (NaN, Infinity, -Infinity)",
+          "Range violations (negative numbers, zero)",
+          "Valid values (positive numbers, large numbers)"
+        ],
+        "test_pattern": "Arrange → Act → Assert fallback behavior",
+        "coverage_targets": [
+          "Test 8+ invalid value scenarios",
+          "Verify graceful fallback for each",
+          "Ensure no exceptions thrown",
+          "Validate correct behavior for valid values"
+        ]
+      },
+      "benefits": [
+        "Prevents production failures from unexpected input",
+        "Documents expected behavior through tests",
+        "Catches regressions during refactoring",
+        "Builds confidence in error handling"
+      ],
+      "edge_cases_tested": [
+        "negative delay → immediate delivery",
+        "string delay → immediate delivery",
+        "null delay → immediate delivery",
+        "undefined delay → immediate delivery",
+        "NaN delay → immediate delivery",
+        "object delay → immediate delivery",
+        "zero delay → immediate delivery",
+        "Infinity delay → delayed delivery (valid)"
+      ],
+      "tags": ["testing", "edge-cases", "validation", "robustness", "type-safety"]
+    },
+    {
+      "id": "plugin-prerequisite-documentation",
+      "category": "documentation",
+      "title": "Documenting external plugin dependencies in library READMEs",
+      "problem": "Library features depend on external RabbitMQ plugins that must be installed separately",
+      "solution": "Create dedicated Prerequisites section with installation commands and configuration examples",
+      "implementation": {
+        "structure": [
+          "Prerequisites heading before Usage section",
+          "Clear statement of requirement (what plugin, why needed)",
+          "Installation commands (bash examples)",
+          "Configuration examples (exchange setup)",
+          "Link to official plugin documentation"
+        ],
+        "content_elements": [
+          "Command-line installation (rabbitmq-plugins enable)",
+          "Server restart instructions",
+          "Exchange configuration (rabbitmqadmin or programmatic)",
+          "Error handling guidance (what happens if plugin missing)"
+        ]
+      },
+      "benefits": [
+        "Prevents user confusion and support requests",
+        "Clear setup path for new users",
+        "Reduces integration time",
+        "Sets correct expectations about external dependencies"
+      ],
+      "example_structure": "## Prerequisites\n\nRequires rabbitmq_delayed_message_exchange plugin.\n\n**Installation:**\n```bash\nrabbitmq-plugins enable rabbitmq_delayed_message_exchange\nrabbitmqctl restart\n```\n\n**Exchange Configuration:**\n```bash\nrabbitmqadmin declare exchange name=events.delayed type=x-delayed-message\n```",
+      "tags": ["documentation", "prerequisites", "dependencies", "user-guidance", "rabbitmq"]
     }
   ],
   "patterns": [
@@ -295,6 +389,48 @@
       },
       "when_to_use": "Libraries managing background services (polling, scheduled tasks, connections)",
       "when_to_avoid": "Simple libraries without lifecycle needs or stateless utilities"
+    },
+    {
+      "id": "dual-exchange-delayed-messages",
+      "category": "architecture",
+      "name": "Dual exchange pattern for delayed message delivery",
+      "context": "Message publisher needs to support both immediate and delayed delivery without performance penalty",
+      "pattern": "Use two separate exchanges (direct + delayed) with automatic selection based on message metadata",
+      "components": [
+        "Direct exchange - Handles immediate messages (standard topic exchange)",
+        "Delayed exchange - Handles delayed messages (x-delayed-message type)",
+        "Selection logic - Routes to appropriate exchange based on metadata.delay presence",
+        "Header mapping - Converts metadata.delay to x-delay header for delayed exchange"
+      ],
+      "implementation_details": {
+        "routing_logic": "if (delay !== null) use delayedExchange else use directExchange",
+        "header_transformation": "metadata.delay (milliseconds) → x-delay header (milliseconds)",
+        "routing_key_format": "{aggregateType}.{eventType}"
+      },
+      "trade_offs": {
+        "pros": [
+          "No delay overhead for immediate messages",
+          "Clear separation of concerns (immediate vs delayed)",
+          "Can monitor each exchange independently",
+          "Delayed exchange failure doesn't affect immediate delivery"
+        ],
+        "cons": [
+          "Requires two exchange configurations",
+          "Requires rabbitmq_delayed_message_exchange plugin",
+          "More complex RabbitMQ topology"
+        ]
+      },
+      "when_to_use": [
+        "Mix of immediate and delayed messages in same system",
+        "High-volume immediate messages with occasional delayed ones",
+        "Need separate monitoring/metrics for immediate vs delayed"
+      ],
+      "when_to_avoid": [
+        "Only delayed messages (single delayed exchange sufficient)",
+        "Cannot install RabbitMQ plugins",
+        "Simple pub-sub without delay requirements"
+      ],
+      "related_patterns": ["single-exchange-with-ttl", "queue-level-delays"]
     }
   ],
   "anti_patterns": [
@@ -357,13 +493,53 @@
         "good": "Library handles automatically via lifecycle service"
       },
       "tags": ["nestjs", "lifecycle", "dx", "boilerplate"]
+    },
+    {
+      "id": "single-exchange-for-all-messages",
+      "name": "Using single exchange for both immediate and delayed messages",
+      "problem": "Routing all messages (immediate and delayed) through x-delayed-message exchange",
+      "why_bad": [
+        "Performance overhead: All messages go through delay plugin even if delay=0",
+        "Cannot monitor immediate vs delayed separately",
+        "Plugin failure affects all message delivery",
+        "Wastes resources checking delay for immediate messages"
+      ],
+      "better_approach": "Use dual exchange pattern: direct exchange for immediate, delayed exchange for delayed messages",
+      "tags": ["rabbitmq", "performance", "architecture", "delayed-messages"]
+    },
+    {
+      "id": "missing-delay-validation",
+      "name": "Not validating delay values before publishing",
+      "problem": "Passing unvalidated metadata.delay directly to message broker without type/range checks",
+      "why_bad": [
+        "Runtime errors from invalid types (string, object, null)",
+        "Unexpected behavior from negative delays",
+        "NaN or undefined causes broker errors",
+        "No fallback strategy for invalid input"
+      ],
+      "better_approach": "Validate delay is number >= 0, fall back to immediate delivery for invalid values",
+      "tags": ["validation", "type-safety", "error-handling", "delayed-messages"]
+    },
+    {
+      "id": "insufficient-edge-case-testing",
+      "name": "Testing only happy path for optional numeric fields",
+      "problem": "Only testing valid delay values without covering invalid input scenarios",
+      "why_bad": [
+        "Production failures from unexpected user input",
+        "No visibility into how code handles edge cases",
+        "Regressions go undetected during refactoring",
+        "Unclear fallback behavior"
+      ],
+      "better_approach": "Test 8+ edge cases: negative, zero, string, null, undefined, NaN, object, Infinity",
+      "tags": ["testing", "edge-cases", "validation", "robustness"]
     }
   ],
   "metadata": {
-    "total_skills": 9,
-    "total_patterns": 2,
-    "total_anti_patterns": 4,
-    "last_updated": "2026-01-11T15:20:00Z",
-    "created_at": "2026-01-05T00:00:00Z"
+    "total_skills": 12,
+    "total_patterns": 3,
+    "total_anti_patterns": 7,
+    "last_updated": "2026-01-11T15:22:00Z",
+    "created_at": "2026-01-05T00:00:00Z",
+    "last_task": "AIRIS-47: feat(rabbitmq): add x-delayed-message support with dual exchange architecture"
   }
 }
