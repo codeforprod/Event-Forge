@@ -133,6 +133,51 @@
         "Cleaner workflow execution"
       ],
       "tags": ["github-actions", "conditional-execution", "pypi", "npm", "workflow"]
+    },
+    {
+      "id": "typeorm-pessimistic-lock-transaction",
+      "category": "bug-patterns",
+      "title": "TypeORM pessimistic locks must be wrapped in transactions",
+      "problem": "PessimisticLockTransactionRequiredError when using setLock('pessimistic_write')",
+      "symptoms": [
+        "Error: 'An optimistic lock can only be used inside a transaction'",
+        "Method using pessimistic_write lock fails at runtime",
+        "Query builder with FOR UPDATE SKIP LOCKED throws error"
+      ],
+      "root_cause": "TypeORM requires pessimistic locks (FOR UPDATE) to be executed within an active transaction context",
+      "investigation": [
+        "Check if query builder uses setLock('pessimistic_write') or setLock('pessimistic_read')",
+        "Verify if the operation is wrapped in dataSource.transaction()",
+        "Examine if operations use this.repository vs manager.getRepository()"
+      ],
+      "solution": {
+        "pattern": "Wrap entire method in dataSource.transaction() and use manager.getRepository()",
+        "before": "async fetchAndLock() { const query = this.repository.createQueryBuilder().setLock('pessimistic_write'); }",
+        "after": "async fetchAndLock() { return this.dataSource.transaction(async (manager) => { const query = manager.getRepository(Entity).createQueryBuilder().setLock('pessimistic_write'); }); }",
+        "key_changes": [
+          "Wrap in this.dataSource.transaction(async (manager) => {...})",
+          "Replace this.repository with manager.getRepository(EntityClass)",
+          "All operations in method must use manager.getRepository()",
+          "Return value from transaction callback"
+        ]
+      },
+      "prevention": [
+        "Always use pessimistic locks within transaction boundaries",
+        "Code review checklist: setLock() calls must be inside transaction()",
+        "Add integration tests for concurrent lock scenarios",
+        "Document transaction requirements in method comments"
+      ],
+      "related_patterns": [
+        "SKIP LOCKED for non-blocking concurrent processing",
+        "Atomic status updates within same transaction as lock",
+        "Manager pattern for transactional repositories"
+      ],
+      "example": {
+        "file": "packages/adapter-typeorm/src/repositories/typeorm-outbox.repository.ts",
+        "method": "fetchAndLockPending",
+        "fix_commit": "AIRIS-46"
+      },
+      "tags": ["typeorm", "pessimistic-lock", "transaction", "postgresql", "concurrency", "bug-fix"]
     }
   ],
   "patterns": [
@@ -191,13 +236,30 @@
       ],
       "better_approach": "Use PyPI Trusted Publishers with GitHub Actions OIDC",
       "tags": ["security", "pypi", "tokens", "oidc"]
+    },
+    {
+      "id": "pessimistic-lock-without-transaction",
+      "name": "Using pessimistic locks outside transactions in TypeORM",
+      "problem": "Calling setLock('pessimistic_write') on query builder without wrapping in transaction",
+      "why_bad": [
+        "Throws PessimisticLockTransactionRequiredError at runtime",
+        "Violates TypeORM's transaction requirements",
+        "Can lead to race conditions if not properly handled",
+        "Tests may pass but production fails"
+      ],
+      "better_approach": "Always wrap pessimistic lock operations in dataSource.transaction()",
+      "example": {
+        "wrong": "this.repository.createQueryBuilder().setLock('pessimistic_write').getMany()",
+        "correct": "this.dataSource.transaction(async (manager) => manager.getRepository(Entity).createQueryBuilder().setLock('pessimistic_write').getMany())"
+      },
+      "tags": ["typeorm", "pessimistic-lock", "transaction", "anti-pattern"]
     }
   ],
   "metadata": {
-    "total_skills": 5,
+    "total_skills": 6,
     "total_patterns": 1,
-    "total_anti_patterns": 2,
-    "last_updated": "2026-01-07T16:30:00Z",
+    "total_anti_patterns": 3,
+    "last_updated": "2026-01-11T15:13:00Z",
     "created_at": "2026-01-05T00:00:00Z"
   }
 }
