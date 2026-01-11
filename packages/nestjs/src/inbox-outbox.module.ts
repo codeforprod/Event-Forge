@@ -7,6 +7,7 @@ import {
   IMessagePublisher,
 } from '@prodforcode/event-forge-core';
 
+import { EventForgeLifecycleService } from './eventforge-lifecycle.service';
 import {
   INBOX_OUTBOX_OPTIONS,
   OUTBOX_REPOSITORY,
@@ -32,11 +33,23 @@ export class InboxOutboxModule {
    */
   static forRoot(options: InboxOutboxModuleOptions): DynamicModule {
     const providers = this.createProviders(options);
+    const exports: Array<string | symbol | Type> = [
+      OUTBOX_SERVICE,
+      INBOX_SERVICE,
+      OUTBOX_REPOSITORY,
+      INBOX_REPOSITORY,
+    ];
+
+    // Conditionally add lifecycle service if autoStart is enabled (default: true)
+    if (options.lifecycle?.autoStart !== false && options.outbox) {
+      providers.push(EventForgeLifecycleService);
+      exports.push(EventForgeLifecycleService);
+    }
 
     return {
       module: InboxOutboxModule,
       providers,
-      exports: [OUTBOX_SERVICE, INBOX_SERVICE, OUTBOX_REPOSITORY, INBOX_REPOSITORY],
+      exports,
       global: true,
     };
   }
@@ -46,15 +59,24 @@ export class InboxOutboxModule {
    */
   static forRootAsync(options: InboxOutboxModuleAsyncOptions): DynamicModule {
     const asyncProviders = this.createAsyncProviders(options);
+    const dynamicProviders = this.createDynamicProviders();
+    const lifecycleProvider = this.createLifecycleProvider();
 
     return {
       module: InboxOutboxModule,
       imports: options.imports || [],
       providers: [
         ...asyncProviders,
-        ...this.createDynamicProviders(),
+        ...dynamicProviders,
+        lifecycleProvider,
       ],
-      exports: [OUTBOX_SERVICE, INBOX_SERVICE, OUTBOX_REPOSITORY, INBOX_REPOSITORY],
+      exports: [
+        OUTBOX_SERVICE,
+        INBOX_SERVICE,
+        OUTBOX_REPOSITORY,
+        INBOX_REPOSITORY,
+        EventForgeLifecycleService,
+      ],
       global: true,
     };
   }
@@ -285,5 +307,27 @@ export class InboxOutboxModule {
    */
   private static isType<T>(value: unknown): value is Type<T> {
     return typeof value === 'function';
+  }
+
+  /**
+   * Create lifecycle provider conditionally based on options
+   */
+  private static createLifecycleProvider(): Provider {
+    return {
+      provide: EventForgeLifecycleService,
+      useFactory: (
+        outboxService: OutboxService | null,
+        options: InboxOutboxModuleOptions,
+      ): EventForgeLifecycleService | null => {
+        // Only provide lifecycle service if:
+        // 1. Outbox service exists
+        // 2. autoStart is not explicitly disabled (default: true)
+        if (!outboxService || options.lifecycle?.autoStart === false) {
+          return null;
+        }
+        return new EventForgeLifecycleService(outboxService);
+      },
+      inject: [OUTBOX_SERVICE, INBOX_OUTBOX_OPTIONS],
+    };
   }
 }

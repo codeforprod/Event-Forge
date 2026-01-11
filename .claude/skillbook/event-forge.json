@@ -178,6 +178,65 @@
         "fix_commit": "AIRIS-46"
       },
       "tags": ["typeorm", "pessimistic-lock", "transaction", "postgresql", "concurrency", "bug-fix"]
+    },
+    {
+      "id": "nestjs-lifecycle-hooks",
+      "category": "best-practices",
+      "title": "Automatic service lifecycle management in NestJS modules",
+      "problem": "Consumers must manually start/stop polling in their own lifecycle hooks, leading to boilerplate code",
+      "solution": "Create a lifecycle service implementing OnApplicationBootstrap and OnApplicationShutdown that automatically manages service lifecycle",
+      "implementation": {
+        "steps": [
+          "Create service implementing OnApplicationBootstrap and OnApplicationShutdown",
+          "Inject the service to manage (e.g., OutboxService)",
+          "Call service methods in lifecycle hooks",
+          "Add lifecycle.autoStart configuration option (default: true)",
+          "Conditionally provide lifecycle service based on configuration",
+          "Export lifecycle service for manual control if needed"
+        ],
+        "code_example": {
+          "service": "@Injectable() class EventForgeLifecycleService { constructor(@Inject(TOKEN) private service) {} onApplicationBootstrap() { this.service.start(); } onApplicationShutdown() { this.service.stop(); } }",
+          "conditional_provider": "if (options.lifecycle?.autoStart !== false) { providers.push(LifecycleService); }",
+          "config": "{ lifecycle: { autoStart: true } }"
+        }
+      },
+      "benefits": [
+        "Eliminates boilerplate lifecycle code in consumer applications",
+        "Ensures consistent lifecycle management",
+        "Graceful shutdown handling",
+        "Optional - can be disabled for custom control"
+      ],
+      "tags": ["nestjs", "lifecycle", "automation", "di", "best-practice"]
+    },
+    {
+      "id": "nestjs-conditional-providers",
+      "category": "best-practices",
+      "title": "Conditional provider registration based on configuration",
+      "problem": "Need to conditionally provide services based on user configuration options",
+      "solution": "Use factory providers that check configuration and return null when service should not be provided",
+      "implementation": {
+        "pattern": "useFactory with conditional logic",
+        "code_example": "{ provide: Service, useFactory: (config) => config.enabled !== false ? new Service() : null, inject: [CONFIG] }",
+        "null_safe_default": "Use !== false instead of === true to default to true (treats undefined/null as true)"
+      },
+      "benefits": [
+        "Clean DI without complex conditional module registration",
+        "Type-safe configuration",
+        "Easy to test with different configurations"
+      ],
+      "tags": ["nestjs", "di", "conditional-logic", "configuration"]
+    },
+    {
+      "id": "eslint-import-order",
+      "category": "code-quality",
+      "title": "ESLint import/order rule compliance",
+      "problem": "ESLint import/order errors: 'There should be at least one empty line between import groups'",
+      "solution": "Add empty line between external package imports and internal (relative) imports",
+      "implementation": {
+        "correct_pattern": "import { External } from '@package';\nimport { External2 } from '@package2';\n\nimport { Internal } from './internal';",
+        "groups": "1. External packages (@namespace, npm packages), 2. Empty line, 3. Internal imports (./relative)"
+      },
+      "tags": ["eslint", "import-order", "code-style", "linting"]
     }
   ],
   "patterns": [
@@ -208,6 +267,34 @@
       },
       "when_to_use": "Multi-platform monorepos with frequent releases",
       "when_to_avoid": "Single package projects or infrequent manual releases"
+    },
+    {
+      "id": "nestjs-lifecycle-automation",
+      "category": "architecture",
+      "name": "Automatic lifecycle management in NestJS libraries",
+      "context": "Building NestJS libraries that manage background services requiring start/stop",
+      "pattern": "Provide optional lifecycle service that automatically manages service lifecycle via NestJS hooks",
+      "components": [
+        "Lifecycle service implementing OnApplicationBootstrap and OnApplicationShutdown",
+        "Configuration option (lifecycle.autoStart) to enable/disable automatic management",
+        "Conditional provider registration based on configuration",
+        "Service export for manual control when autoStart is disabled"
+      ],
+      "trade_offs": {
+        "pros": [
+          "Zero boilerplate for consumers (works out of the box)",
+          "Consistent lifecycle management",
+          "Graceful shutdown handling",
+          "Optional - can be disabled for custom control"
+        ],
+        "cons": [
+          "Adds complexity to module registration logic",
+          "Less explicit control (hidden lifecycle management)",
+          "Requires understanding of conditional providers"
+        ]
+      },
+      "when_to_use": "Libraries managing background services (polling, scheduled tasks, connections)",
+      "when_to_avoid": "Simple libraries without lifecycle needs or stateless utilities"
     }
   ],
   "anti_patterns": [
@@ -253,13 +340,30 @@
         "correct": "this.dataSource.transaction(async (manager) => manager.getRepository(Entity).createQueryBuilder().setLock('pessimistic_write').getMany())"
       },
       "tags": ["typeorm", "pessimistic-lock", "transaction", "anti-pattern"]
+    },
+    {
+      "id": "manual-lifecycle-in-consumers",
+      "name": "Requiring consumers to manually manage service lifecycle",
+      "problem": "NestJS library requires every consumer to add onApplicationBootstrap/onApplicationShutdown hooks",
+      "why_bad": [
+        "Boilerplate code in every consumer",
+        "Easy to forget, leading to resource leaks",
+        "Inconsistent implementation across consumers",
+        "Poor developer experience"
+      ],
+      "better_approach": "Provide automatic lifecycle management with opt-out configuration",
+      "example": {
+        "bad": "Consumer must: constructor(service) {} onApplicationBootstrap() { service.start(); }",
+        "good": "Library handles automatically via lifecycle service"
+      },
+      "tags": ["nestjs", "lifecycle", "dx", "boilerplate"]
     }
   ],
   "metadata": {
-    "total_skills": 6,
-    "total_patterns": 1,
-    "total_anti_patterns": 3,
-    "last_updated": "2026-01-11T15:13:00Z",
+    "total_skills": 9,
+    "total_patterns": 2,
+    "total_anti_patterns": 4,
+    "last_updated": "2026-01-11T15:20:00Z",
     "created_at": "2026-01-05T00:00:00Z"
   }
 }
