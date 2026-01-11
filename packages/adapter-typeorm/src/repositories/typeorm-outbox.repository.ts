@@ -44,40 +44,43 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
   }
 
   async fetchAndLockPending(limit: number, lockerId: string): Promise<OutboxMessage[]> {
-    const now = new Date();
+    return this.dataSource.transaction(async (manager) => {
+      const now = new Date();
 
-    // Use raw query with FOR UPDATE SKIP LOCKED for PostgreSQL
-    const query = this.repository
-      .createQueryBuilder('outbox')
-      .where('outbox.status IN (:...statuses)', {
-        statuses: [OutboxMessageStatus.PENDING, OutboxMessageStatus.FAILED],
-      })
-      .andWhere('(outbox.scheduledAt IS NULL OR outbox.scheduledAt <= :now)', { now })
-      .andWhere(
-        '(outbox.lockedAt IS NULL OR outbox.lockedAt < :lockTimeout)',
-        { lockTimeout: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes timeout
-      )
-      .orderBy('outbox.createdAt', 'ASC')
-      .limit(limit)
-      .setLock('pessimistic_write')
-      .setOnLocked('skip_locked');
+      // Use raw query with FOR UPDATE SKIP LOCKED for PostgreSQL
+      const query = manager
+        .getRepository(OutboxMessageEntity)
+        .createQueryBuilder('outbox')
+        .where('outbox.status IN (:...statuses)', {
+          statuses: [OutboxMessageStatus.PENDING, OutboxMessageStatus.FAILED],
+        })
+        .andWhere('(outbox.scheduledAt IS NULL OR outbox.scheduledAt <= :now)', { now })
+        .andWhere(
+          '(outbox.lockedAt IS NULL OR outbox.lockedAt < :lockTimeout)',
+          { lockTimeout: new Date(Date.now() - 5 * 60 * 1000) }, // 5 minutes timeout
+        )
+        .orderBy('outbox.createdAt', 'ASC')
+        .limit(limit)
+        .setLock('pessimistic_write')
+        .setOnLocked('skip_locked');
 
-    const messages = await query.getMany();
+      const messages = await query.getMany();
 
-    // Update locked status
-    if (messages.length > 0) {
-      const ids = messages.map((m) => m.id);
-      await this.repository.update(ids, {
-        status: OutboxMessageStatus.PROCESSING,
-        lockedBy: lockerId,
-        lockedAt: new Date(),
-      });
+      // Update locked status
+      if (messages.length > 0) {
+        const ids = messages.map((m) => m.id);
+        await manager.getRepository(OutboxMessageEntity).update(ids, {
+          status: OutboxMessageStatus.PROCESSING,
+          lockedBy: lockerId,
+          lockedAt: new Date(),
+        });
 
-      // Refetch to get updated entities
-      return this.repository.findByIds(ids);
-    }
+        // Refetch to get updated entities
+        return manager.getRepository(OutboxMessageEntity).findByIds(ids);
+      }
 
-    return [];
+      return [];
+    });
   }
 
   async markPublished(id: string): Promise<void> {
