@@ -1,0 +1,9 @@
+src/
+__tests__/
+*.spec.ts
+*.test.ts
+tsconfig.json
+jest.config.js
+.turbo
+node_modules/
+.DS_Store

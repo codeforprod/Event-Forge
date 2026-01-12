@@ -87,6 +87,9 @@ CREATE TABLE ${fullTableName} (
   status ${schemaPrefix}inbox_message_status NOT NULL DEFAULT 'received',
   processed_at TIMESTAMP WITH TIME ZONE,
   error_message TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  max_retries INTEGER NOT NULL DEFAULT 3,
+  scheduled_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   received_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   UNIQUE(message_id, source)
@@ -137,7 +140,10 @@ CREATE INDEX idx_inbox_status ON ${fullTableName} (status);
 CREATE INDEX idx_inbox_created_at ON ${fullTableName} (created_at);
 
 -- Index for received_at queries
-CREATE INDEX idx_inbox_received_at ON ${fullTableName} (received_at);`;
+CREATE INDEX idx_inbox_received_at ON ${fullTableName} (received_at);
+
+-- Compound index for retry queries
+CREATE INDEX idx_inbox_retry ON ${fullTableName} (status, retry_count, scheduled_at, created_at);`;
 }
 
 /**
