@@ -12,6 +12,9 @@ import { join } from 'path';
 import { Command } from 'commander';
 
 import { createMigrationCommand } from './migration-command';
+import { createMigrationListCommand } from './migration-list-command';
+import { createMigrationRollbackCommand } from './migration-rollback-command';
+import { createMigrationRunCommand } from './migration-run-command';
 
 // Read version from package.json
 interface PackageJson {
@@ -31,6 +34,9 @@ program
 
 // Register commands
 program.addCommand(createMigrationCommand());
+program.addCommand(createMigrationListCommand());
+program.addCommand(createMigrationRunCommand());
+program.addCommand(createMigrationRollbackCommand());
 
 // Parse arguments
 program.parse(process.argv);

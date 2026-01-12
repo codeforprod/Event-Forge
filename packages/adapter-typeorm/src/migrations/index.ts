@@ -22,3 +22,11 @@ export {
   generateDropTables,
   generateDropTypes,
 } from './templates';
+
+export { MigrationManager } from './migration-manager';
+export { MigrationDiscovery } from './migration-discovery';
+export type {
+  Migration,
+  MigrationStatus,
+  MigrationResult,
+} from './migration.interface';
