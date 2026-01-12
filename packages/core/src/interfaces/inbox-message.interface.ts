@@ -27,6 +27,15 @@ export interface InboxMessage {
   /** Error message if processing failed */
   errorMessage?: string;
 
+  /** Number of times processing has been retried */
+  retryCount: number;
+
+  /** Maximum number of retry attempts allowed */
+  maxRetries: number;
+
+  /** When the message should be retried (for delayed retry) */
+  scheduledAt?: Date;
+
   /** Timestamp when the message was received */
   createdAt: Date;
 }
@@ -39,4 +48,5 @@ export enum InboxMessageStatus {
   PROCESSING = 'processing',
   PROCESSED = 'processed',
   FAILED = 'failed',
+  PERMANENTLY_FAILED = 'permanently_failed',
 }

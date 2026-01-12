@@ -22,6 +22,8 @@ export enum InboxEvents {
   MESSAGE_DUPLICATE = 'inbox:message:duplicate',
   MESSAGE_PROCESSED = 'inbox:message:processed',
   MESSAGE_FAILED = 'inbox:message:failed',
+  RETRY_POLLING_STARTED = 'inbox:retry:polling:started',
+  RETRY_POLLING_STOPPED = 'inbox:retry:polling:stopped',
 }
 
 /**
@@ -32,6 +34,8 @@ export class InboxService extends EventEmitter {
   private readonly config: Required<InboxConfig>;
   private readonly handlers = new Map<string, MessageHandler[]>();
   private cleanupTimer?: NodeJS.Timeout;
+  private retryPollingTimer?: NodeJS.Timeout;
+  private isProcessingRetries = false;
 
   constructor(
     private readonly repository: IInboxRepository,
@@ -133,18 +137,116 @@ export class InboxService extends EventEmitter {
    */
   private async handleProcessingError(message: InboxMessage, error: unknown): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const isPermanent = error instanceof ProcessingError;
 
-    // Mark as failed
-    await this.repository.markFailed(message.id, errorMessage);
-    this.emit(InboxEvents.MESSAGE_FAILED, { message, error });
+    // Check if we've exceeded max retries
+    if (message.retryCount >= message.maxRetries || isPermanent) {
+      await this.repository.markFailed(message.id, errorMessage, true);
+      this.emit(InboxEvents.MESSAGE_FAILED, { message, error, permanent: true });
 
-    // Re-throw ProcessingError (permanent failure)
-    if (error instanceof ProcessingError) {
-      throw error;
+      // Re-throw ProcessingError
+      if (isPermanent) {
+        throw error;
+      }
+
+      throw new Error(`Failed to process inbox message ${message.id} after ${message.maxRetries} retries: ${errorMessage}`);
     }
 
-    // For other errors, wrap in generic error
+    // Calculate exponential backoff with jitter (only if retry is enabled)
+    let scheduledAt: Date | undefined;
+    if (this.config.enableRetry) {
+      const backoffDelay = this.calculateBackoff(message.retryCount);
+      scheduledAt = new Date(Date.now() + backoffDelay);
+    }
+
+    // Mark as failed with optional scheduled retry
+    await this.repository.markFailed(message.id, errorMessage, false, scheduledAt);
+    this.emit(InboxEvents.MESSAGE_FAILED, { message, error, permanent: false });
+
     throw new Error(`Failed to process inbox message ${message.id}: ${errorMessage}`);
+  }
+
+  /**
+   * Calculate exponential backoff delay in milliseconds
+   * Formula: min(backoffBaseSeconds * 2^retryCount, maxBackoffSeconds) + jitter
+   */
+  private calculateBackoff(retryCount: number): number {
+    const baseDelaySeconds = this.config.backoffBaseSeconds;
+    const maxDelaySeconds = this.config.maxBackoffSeconds;
+
+    // Exponential backoff: base * 2^retryCount
+    const exponentialDelay = baseDelaySeconds * Math.pow(2, retryCount);
+
+    // Apply max limit
+    const cappedDelay = Math.min(exponentialDelay, maxDelaySeconds);
+
+    // Add jitter (±10% randomization to prevent thundering herd)
+    const jitter = cappedDelay * 0.1 * (Math.random() * 2 - 1);
+    const finalDelay = cappedDelay + jitter;
+
+    // Convert to milliseconds
+    return Math.max(0, finalDelay * 1000);
+  }
+
+  /**
+   * Start retry polling for failed messages
+   * Only active if enableRetry is true
+   */
+  startRetryPolling(): void {
+    if (!this.config.enableRetry) {
+      return;
+    }
+
+    if (this.retryPollingTimer) {
+      return;
+    }
+
+    this.emit(InboxEvents.RETRY_POLLING_STARTED);
+    this.retryPollingTimer = setInterval(() => {
+      void this.pollAndRetry();
+    }, this.config.retryPollingInterval);
+
+    // Initial poll
+    void this.pollAndRetry();
+  }
+
+  /**
+   * Stop retry polling
+   */
+  stopRetryPolling(): void {
+    if (this.retryPollingTimer) {
+      clearInterval(this.retryPollingTimer);
+      this.retryPollingTimer = undefined;
+      this.emit(InboxEvents.RETRY_POLLING_STOPPED);
+    }
+  }
+
+  /**
+   * Poll for retryable messages and process them
+   */
+  private async pollAndRetry(): Promise<void> {
+    if (this.isProcessingRetries) {
+      return;
+    }
+
+    this.isProcessingRetries = true;
+
+    try {
+      // Fetch retryable messages
+      const messages = await this.repository.findRetryable(this.config.retryBatchSize);
+
+      if (!messages || messages.length === 0) {
+        return;
+      }
+
+      // Process each message
+      await Promise.all(messages.map((message) => this.processMessage(message)));
+    } catch (error) {
+      // Log error but don't stop polling
+      this.emit('error', error);
+    } finally {
+      this.isProcessingRetries = false;
+    }
   }
 
   /**

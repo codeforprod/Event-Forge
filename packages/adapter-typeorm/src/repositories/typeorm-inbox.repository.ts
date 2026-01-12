@@ -1,6 +1,7 @@
 import {
   CreateInboxMessageDto,
   IInboxRepository,
+  InboxMessage,
   InboxMessageStatus,
   RecordInboxMessageResult,
 } from '@prodforcode/event-forge-core';
@@ -43,6 +44,8 @@ export class TypeOrmInboxRepository implements IInboxRepository {
       eventType: dto.eventType,
       payload: dto.payload,
       status: InboxMessageStatus.RECEIVED,
+      retryCount: 0,
+      maxRetries: dto.maxRetries ?? 3,
     });
 
     try {
@@ -101,11 +104,36 @@ export class TypeOrmInboxRepository implements IInboxRepository {
     });
   }
 
-  async markFailed(id: string, error: string): Promise<void> {
-    await this.repository.update(id, {
-      status: InboxMessageStatus.FAILED,
-      errorMessage: error,
-    });
+  async markFailed(id: string, error: string, permanent = false, scheduledAt?: Date): Promise<void> {
+    const status = permanent
+      ? InboxMessageStatus.PERMANENTLY_FAILED
+      : InboxMessageStatus.FAILED;
+
+    // Use atomic increment for retry count
+    await this.repository
+      .createQueryBuilder()
+      .update(InboxMessageEntity)
+      .set({
+        status,
+        errorMessage: error,
+        scheduledAt: scheduledAt ?? null,
+        retryCount: () => 'retry_count + 1',
+      } as never)
+      .where('id = :id', { id })
+      .execute();
+  }
+
+  async findRetryable(limit: number): Promise<InboxMessage[]> {
+    const now = new Date();
+
+    return this.repository
+      .createQueryBuilder('inbox')
+      .where('inbox.status = :status', { status: InboxMessageStatus.FAILED })
+      .andWhere('inbox.retryCount < inbox.maxRetries')
+      .andWhere('(inbox.scheduledAt IS NULL OR inbox.scheduledAt <= :now)', { now })
+      .orderBy('inbox.createdAt', 'ASC')
+      .limit(limit)
+      .getMany();
   }
 
   async deleteOlderThan(date: Date): Promise<number> {

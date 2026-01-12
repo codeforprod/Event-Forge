@@ -17,6 +17,7 @@ describe('InboxService', () => {
       markProcessing: jest.fn(),
       markProcessed: jest.fn(),
       markFailed: jest.fn(),
+      findRetryable: jest.fn(),
       deleteOlderThan: jest.fn(),
     } as jest.Mocked<IInboxRepository>;
 
@@ -113,6 +114,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -147,6 +150,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.PROCESSED,
+        retryCount: 0,
+        maxRetries: 3,
         processedAt: new Date(),
         createdAt: new Date(),
       };
@@ -177,6 +182,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -209,6 +216,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -231,6 +240,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -255,6 +266,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -286,6 +299,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -315,6 +330,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -325,8 +342,8 @@ describe('InboxService', () => {
 
       await expect(service.processMessage(message)).rejects.toThrow(ProcessingError);
 
-      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'Invalid payload');
-      expect(emitSpy).toHaveBeenCalledWith(InboxEvents.MESSAGE_FAILED, { message, error });
+      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'Invalid payload', true);
+      expect(emitSpy).toHaveBeenCalledWith(InboxEvents.MESSAGE_FAILED, { message, error, permanent: true });
     });
 
     it('should handle generic errors', async () => {
@@ -342,6 +359,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -354,8 +373,8 @@ describe('InboxService', () => {
         'Failed to process inbox message inbox-1: Handler failed',
       );
 
-      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'Handler failed');
-      expect(emitSpy).toHaveBeenCalledWith(InboxEvents.MESSAGE_FAILED, { message, error });
+      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'Handler failed', false, undefined);
+      expect(emitSpy).toHaveBeenCalledWith(InboxEvents.MESSAGE_FAILED, { message, error, permanent: false });
     });
 
     it('should handle non-Error exceptions', async () => {
@@ -370,6 +389,8 @@ describe('InboxService', () => {
         eventType: 'user.created',
         payload: { name: 'John Doe' },
         status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 3,
         createdAt: new Date(),
       };
 
@@ -378,7 +399,7 @@ describe('InboxService', () => {
 
       await expect(service.processMessage(message)).rejects.toThrow();
 
-      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'String error');
+      expect(mockRepository.markFailed).toHaveBeenCalledWith('inbox-1', 'String error', false, undefined);
     });
   });
 
