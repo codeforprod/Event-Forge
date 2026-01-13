@@ -1,5 +1,5 @@
 {
-  "name": "@prodforcode/event-forge-rabbitmq",
+  "name": "@prodforcode/event-forge-rabbitmq-publisher",
   "version": "1.1.0",
   "description": "RabbitMQ publishers for Universal Inbox-Outbox Pattern",
   "main": "dist/index.js",

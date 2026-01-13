@@ -21,7 +21,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 | `@prodforcode/event-forge-core` | Core services and interfaces | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-core.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-core) |
 | `@prodforcode/event-forge-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-typeorm.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-typeorm) |
 | `@prodforcode/event-forge-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-mongoose.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-mongoose) |
-| `@prodforcode/event-forge-rabbitmq` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-rabbitmq.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-rabbitmq) |
+| `@prodforcode/event-forge-rabbitmq-publisher` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-rabbitmq-publisher.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-rabbitmq-publisher) |
 | `@prodforcode/event-forge-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-nestjs.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-nestjs) |
 
 ### Python
@@ -37,7 +37,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 #### 1. Installation
 
 ```bash
-npm install @prodforcode/event-forge-core @prodforcode/event-forge-nestjs @prodforcode/event-forge-typeorm @prodforcode/event-forge-rabbitmq
+npm install @prodforcode/event-forge-core @prodforcode/event-forge-nestjs @prodforcode/event-forge-typeorm @prodforcode/event-forge-rabbitmq-publisher
 ```
 
 #### 2. Setup Module
@@ -47,7 +47,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@prodforcode/event-forge-typeorm';
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [
@@ -131,7 +131,7 @@ export class UserService {
 #### 4. Configure RabbitMQ Publisher
 
 ```typescript
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 const publisher = new RabbitMQPublisher({
   url: 'amqp://guest:guest@localhost:5672',

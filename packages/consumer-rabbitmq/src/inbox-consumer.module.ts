@@ -1,7 +1,8 @@
 import { RabbitMQModule, RabbitMQConfig } from '@golevelup/nestjs-rabbitmq';
-import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
-import { DiscoveryModule } from '@nestjs/core';
+import { DynamicModule, Module, Provider, Type, OnModuleInit, Inject } from '@nestjs/common';
+import { DiscoveryModule, ModuleRef } from '@nestjs/core';
 
+import { setModuleRef } from './decorators/inbox-subscribe.decorator';
 import type { InboxConsumerOptions } from './interfaces/inbox-consumer-options.interface';
 import { InboxConsumerService } from './services/inbox-consumer.service';
 
@@ -33,7 +34,23 @@ export const INBOX_CONSUMER_OPTIONS = 'INBOX_CONSUMER_OPTIONS';
  * ```
  */
 @Module({})
-export class InboxConsumerModule {
+export class InboxConsumerModule implements OnModuleInit {
+  constructor(
+    private readonly moduleRef: ModuleRef,
+    @Inject(INBOX_CONSUMER_OPTIONS)
+    private readonly options: InboxConsumerOptions,
+  ) {}
+
+  /**
+   * Initialize the module by setting ModuleRef for @InboxSubscribe decorator
+   * This allows the decorator to lazy-inject IInboxRepository at runtime
+   */
+  onModuleInit(): void {
+    setModuleRef(this.moduleRef, {
+      logDuplicates: this.options.logDuplicates ?? true,
+    });
+  }
+
   /**
    * Creates a dynamic module with inbox consumer configuration
    *

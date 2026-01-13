@@ -350,6 +350,6 @@ MIT
 ## Related Packages
 
 - [@prodforcode/event-forge-core](../core) - Core interfaces and services
-- [@prodforcode/event-forge-rabbitmq](../publisher-rabbitmq) - RabbitMQ publishers
+- [@prodforcode/event-forge-rabbitmq-publisher](../publisher-rabbitmq) - RabbitMQ publishers
 - [@prodforcode/event-forge-typeorm](../adapter-typeorm) - TypeORM adapter
 - [@prodforcode/event-forge-nestjs](../nestjs) - NestJS integration

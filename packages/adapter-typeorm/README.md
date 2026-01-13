@@ -392,7 +392,7 @@ MIT
 
 - [@prodforcode/event-forge-core](../core) - Core interfaces and services
 - [@prodforcode/event-forge-mongoose](../adapter-mongoose) - MongoDB adapter
-- [@prodforcode/event-forge-rabbitmq](../publisher-rabbitmq) - RabbitMQ publisher
+- [@prodforcode/event-forge-rabbitmq-publisher](../publisher-rabbitmq) - RabbitMQ publisher
 - [@prodforcode/event-forge-nestjs](../nestjs) - NestJS integration
 
 ## Support

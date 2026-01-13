@@ -25,7 +25,7 @@ Comprehensive test suites have been created for the Universal Inbox-Outbox Libra
 ### ⏸️ Pending Implementation
 
 - `@prodforcode/event-forge-mongoose` - Integration tests
-- `@prodforcode/event-forge-rabbitmq` - Integration tests
+- `@prodforcode/event-forge-rabbitmq-publisher` - Integration tests
 - `@prodforcode/event-forge-nestjs` - E2E tests
 
 ---
@@ -161,7 +161,7 @@ await Promise.resolve(); // Let pending promises settle
 
 **Affected Packages**:
 - `@prodforcode/event-forge-mongoose`
-- `@prodforcode/event-forge-rabbitmq`
+- `@prodforcode/event-forge-rabbitmq-publisher`
 - `@prodforcode/event-forge-nestjs`
 
 **Error**:

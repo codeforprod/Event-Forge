@@ -88,7 +88,7 @@ MongoDB adapter using Mongoose.
 - MongoDB-specific optimizations
 - Compatible with existing message-relay systems
 
-### 📦 RabbitMQ Publishers (`@prodforcode/event-forge-rabbitmq`)
+### 📦 RabbitMQ Publishers (`@prodforcode/event-forge-rabbitmq-publisher`)
 
 RabbitMQ integration with two publisher implementations.
 
@@ -149,7 +149,7 @@ npm install @prodforcode/event-forge-typeorm typeorm
 npm install @prodforcode/event-forge-mongoose mongoose
 
 # RabbitMQ publishers
-npm install @prodforcode/event-forge-rabbitmq
+npm install @prodforcode/event-forge-rabbitmq-publisher
 
 # NestJS module (includes all)
 npm install @prodforcode/event-forge-nestjs
@@ -168,7 +168,7 @@ import {
   OutboxMessageEntity,
   InboxMessageEntity,
 } from '@prodforcode/event-forge-typeorm';
-import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 // Setup DataSource
 const dataSource = new DataSource({
@@ -268,7 +268,7 @@ inbox-outbox/
 │   ├── core/                 # @prodforcode/event-forge-core
 │   ├── adapter-typeorm/      # @prodforcode/event-forge-typeorm
 │   ├── adapter-mongoose/     # @prodforcode/event-forge-mongoose
-│   ├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq
+│   ├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq-publisher
 │   └── nestjs/               # @prodforcode/event-forge-nestjs
 ├── spec/
 │   ├── schemas/              # JSON Schema definitions

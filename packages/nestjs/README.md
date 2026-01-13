@@ -27,7 +27,7 @@ The simplest setup automatically manages polling lifecycle:
 import { Module } from '@nestjs/common';
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { TypeOrmOutboxRepository } from '@prodforcode/event-forge-typeorm';
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [

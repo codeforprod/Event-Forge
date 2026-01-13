@@ -80,7 +80,7 @@ inbox-outbox/
 │   │   │   └── mongoose-inbox.repository.ts
 │   │   └── index.ts
 │   │
-│   ├── publisher-rabbitmq/           # @prodforcode/event-forge-rabbitmq
+│   ├── publisher-rabbitmq/           # @prodforcode/event-forge-rabbitmq-publisher
 │   │   ├── golevelup-publisher.ts
 │   │   ├── microservices-publisher.ts
 │   │   └── index.ts
@@ -666,7 +666,7 @@ export class InboxOutboxModule {
 // app.module.ts
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { TypeOrmOutboxRepository, TypeOrmInboxRepository } from '@prodforcode/event-forge-typeorm';
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [
@@ -723,7 +723,7 @@ export class CallsService {
 // app.module.ts
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { MongooseOutboxRepository, MongooseInboxRepository } from '@prodforcode/event-forge-mongoose';
-import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [
@@ -815,7 +815,7 @@ async def start_call(call_id: str):
 | `@prodforcode/event-forge-core` | Core interfaces & services | Always required |
 | `@prodforcode/event-forge-typeorm` | PostgreSQL adapter | event-forge Backend |
 | `@prodforcode/event-forge-mongoose` | MongoDB adapter | Holocron |
-| `@prodforcode/event-forge-rabbitmq` | RabbitMQ publishers | All projects |
+| `@prodforcode/event-forge-rabbitmq-publisher` | RabbitMQ publishers | All projects |
 | `@prodforcode/event-forge-nestjs` | NestJS module | NestJS projects |
 
 **Python:**

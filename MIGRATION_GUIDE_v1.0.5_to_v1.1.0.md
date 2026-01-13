@@ -171,7 +171,7 @@ async handleOrderCreated(message: any) {
 npm install @prodforcode/event-forge-core@1.1.0 \
             @prodforcode/event-forge-nestjs@1.1.0 \
             @prodforcode/event-forge-typeorm@1.1.0 \
-            @prodforcode/event-forge-rabbitmq@1.1.0
+            @prodforcode/event-forge-rabbitmq-publisher@1.1.0
 ```
 
 #### For MongoDB Users
@@ -632,7 +632,7 @@ async handleOrderCreatedNew(message: any) {
 npm install @prodforcode/event-forge-core@1.0.5 \
             @prodforcode/event-forge-nestjs@1.0.5 \
             @prodforcode/event-forge-typeorm@1.0.5 \
-            @prodforcode/event-forge-rabbitmq@1.0.5
+            @prodforcode/event-forge-rabbitmq-publisher@1.0.5
 ```
 
 #### Rollback Database Migration (TypeORM)
@@ -856,7 +856,7 @@ Include:
 npm install @prodforcode/event-forge-core@1.1.0 \
             @prodforcode/event-forge-nestjs@1.1.0 \
             @prodforcode/event-forge-typeorm@1.1.0 \
-            @prodforcode/event-forge-rabbitmq@1.1.0
+            @prodforcode/event-forge-rabbitmq-publisher@1.1.0
 
 # 2. Run migrations
 npx event-forge migration:run --data-source=./src/config/data-source.ts

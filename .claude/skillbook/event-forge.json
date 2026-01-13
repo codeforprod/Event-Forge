@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "service": "event-forge",
   "description": "Skillbook for Event-Forge project - patterns, learnings, and best practices",
   "skills": [
@@ -611,6 +611,148 @@
         "tests": "packages/consumer-rabbitmq/src/__tests__/inbox-consumer.service.spec.ts:388-411"
       },
       "tags": ["rabbitmq", "message-extraction", "deserialization", "type-checking", "golevelup", "nestjs", "bug-fix"]
+    },
+    {
+      "id": "nestjs-decorator-timing-pattern",
+      "category": "bug-patterns",
+      "title": "NestJS decorator wrapping must happen at prototype level, not instance level",
+      "problem": "@InboxSubscribe decorator not recording messages because wrapping happened at instance level while @RabbitSubscribe discovers handlers from prototype",
+      "symptoms": [
+        "Handler executes but decorator logic (INBOX recording) doesn't run",
+        "Handler works in isolation but fails when composed with other decorators",
+        "Runtime instance property shadowing doesn't affect decorator-discovered methods",
+        "Integration tests pass but E2E tests show messages not being recorded"
+      ],
+      "root_cause": "NestJS decorators modify prototype via descriptor.value. Runtime instance wrapping doesn't affect prototype. @golevelup/nestjs-rabbitmq discovers handlers from prototype, not instance properties, so instance-level wrapping is invisible to the library.",
+      "investigation": [
+        "Check if wrapping happens in decorator vs onModuleInit/constructor",
+        "Verify if handler method is on prototype or instance",
+        "Test if descriptor.value is being modified in decorator",
+        "Review library documentation on handler discovery mechanism (prototype vs instance)"
+      ],
+      "solution": {
+        "pattern": "Wrap method in descriptor.value BEFORE applying subsequent decorators",
+        "implementation": "export function InboxSubscribe(options: InboxSubscribeOptions): MethodDecorator {\n  return (target, propertyKey, descriptor: PropertyDescriptor) => {\n    const originalMethod = descriptor.value;\n    \n    // WRAP at prototype level BEFORE @RabbitSubscribe\n    descriptor.value = async function wrappedInboxHandler(...args) {\n      const inboxRepository = moduleRef.get<IInboxRepository>('IInboxRepository');\n      const { isDuplicate } = await inboxRepository.record({...});\n      \n      if (isDuplicate) return; // Skip duplicates\n      \n      return originalMethod.apply(this, args);\n    };\n    \n    // Apply @RabbitSubscribe to WRAPPED method\n    RabbitSubscribe({...})(target, propertyKey, descriptor);\n  };\n}",
+        "key_changes": [
+          "Move wrapping logic INTO decorator function",
+          "Replace descriptor.value with wrapped version BEFORE @RabbitSubscribe",
+          "Use ModuleRef for lazy DI (inject dependencies at runtime)",
+          "Apply @RabbitSubscribe to already-wrapped descriptor.value",
+          "Remove instance-level wrapping from onModuleInit"
+        ]
+      },
+      "prevention": [
+        "Always modify descriptor.value for prototype-level changes in decorators",
+        "Never rely on instance property shadowing for decorator composition",
+        "Test decorator composition with library-specific handler discovery",
+        "Document decorator composition order and timing requirements",
+        "Add integration tests that verify decorator execution order"
+      ],
+      "related_patterns": [
+        "Decorator composition order matters",
+        "Prototype vs instance property shadowing",
+        "ModuleRef for lazy dependency injection in decorators",
+        "Handler discovery mechanisms in NestJS libraries"
+      ],
+      "example": {
+        "file": "packages/consumer-rabbitmq/src/decorators/inbox-subscribe.decorator.ts",
+        "fix_commit": "AIRIS-67",
+        "before": "Wrapping in InboxConsumerService.onModuleInit() at instance level",
+        "after": "Wrapping in @InboxSubscribe decorator at prototype level"
+      },
+      "tags": ["nestjs", "decorators", "prototype", "instance", "timing", "golevelup", "bug-fix"]
+    },
+    {
+      "id": "moduleref-lazy-injection-pattern",
+      "category": "best-practices",
+      "title": "Use ModuleRef for lazy dependency injection in decorators",
+      "problem": "Decorators execute before NestJS DI container is initialized, making constructor injection impossible",
+      "solution": "Store module-level ModuleRef variable and inject dependencies lazily at runtime",
+      "implementation": {
+        "steps": [
+          "Declare module-level variable for ModuleRef: let moduleRef: ModuleRef",
+          "Create service implementing OnModuleInit",
+          "Inject ModuleRef in constructor and store in module-level variable",
+          "In decorator, access dependencies via moduleRef.get<T>(token) at runtime",
+          "Provide the service in module to trigger onModuleInit"
+        ],
+        "code_example": "// decorator.ts\nlet moduleRef: ModuleRef;  // Module-level variable\n\nexport function MyDecorator(): MethodDecorator {\n  return (target, propertyKey, descriptor) => {\n    const original = descriptor.value;\n    \n    descriptor.value = async function(...args) {\n      // Lazy inject at runtime\n      const service = moduleRef.get<MyService>('MyService');\n      await service.doSomething();\n      return original.apply(this, args);\n    };\n  };\n}\n\n// module-ref.service.ts\n@Injectable()\nexport class ModuleRefService implements OnModuleInit {\n  constructor(private readonly ref: ModuleRef) {}\n  \n  onModuleInit() {\n    moduleRef = this.ref;  // Store for decorator access\n  }\n}",
+        "files": [
+          "packages/consumer-rabbitmq/src/decorators/inbox-subscribe.decorator.ts",
+          "packages/consumer-rabbitmq/src/services/module-ref.service.ts"
+        ]
+      },
+      "when_to_use": [
+        "Decorators that need runtime access to NestJS services",
+        "Method decorators that wrap handlers with DI-dependent logic",
+        "Libraries providing decorators that need internal services",
+        "Situations where decorator executes before DI container is ready"
+      ],
+      "when_to_avoid": [
+        "Simple decorators without service dependencies",
+        "Decorators that only modify metadata (no runtime logic)",
+        "When constructor/property injection is sufficient",
+        "Static decorator logic that doesn't need DI"
+      ],
+      "benefits": [
+        "Enables DI in decorators without breaking NestJS patterns",
+        "Clean separation: decorator logic + DI at runtime",
+        "Type-safe service access via moduleRef.get<T>()",
+        "Works with any NestJS provider (services, repositories, etc.)"
+      ],
+      "trade_offs": {
+        "pros": [
+          "Solves decorator + DI timing issue elegantly",
+          "Maintains NestJS DI patterns",
+          "No need for global singletons or workarounds"
+        ],
+        "cons": [
+          "Module-level variable is mutable shared state",
+          "Requires additional service for ModuleRef initialization",
+          "Slightly more complex than direct injection"
+        ]
+      },
+      "related": ["nestjs-decorator-timing-pattern"],
+      "tags": ["nestjs", "decorators", "dependency-injection", "moduleref", "lazy-injection", "best-practices"]
+    },
+    {
+      "id": "decorator-composition-order",
+      "category": "architecture",
+      "title": "Order matters when composing multiple NestJS decorators",
+      "problem": "Multiple decorators applied to same method may not execute in expected order or interact correctly",
+      "solution": "Apply decorators in correct order: inner logic first, then outer discovery decorators",
+      "implementation": {
+        "pattern": "Modify descriptor.value with wrapper logic, THEN apply library decorators to modified descriptor",
+        "execution_flow": "Library decorator discovers method → Wrapper executes → Original method executes",
+        "code_example": "// CORRECT ORDER\nexport function InboxSubscribe(options): MethodDecorator {\n  return (target, propertyKey, descriptor) => {\n    // STEP 1: Wrap method (inner logic)\n    const original = descriptor.value;\n    descriptor.value = async function wrapped(...args) {\n      await doSomethingBefore();\n      return original.apply(this, args);\n    };\n    \n    // STEP 2: Apply outer decorator to wrapped method\n    RabbitSubscribe({...})(target, propertyKey, descriptor);\n  };\n}\n\n// USAGE (decorators stack bottom-to-top)\n@InboxSubscribe({ exchange: 'test' })  // Applied FIRST (outer)\nasync handleMessage(msg: any) {        // Original method (inner)\n  // handler logic\n}",
+        "decorator_stacking": "Decorators are applied bottom-to-top, but inner logic should wrap BEFORE outer decorator discovers the method"
+      },
+      "when_to_use": [
+        "Composing custom decorators with library decorators",
+        "Wrapping handlers discovered by external libraries",
+        "Adding cross-cutting concerns (logging, validation) to library-managed methods",
+        "Building decorator chains with specific execution order requirements"
+      ],
+      "critical_rules": [
+        "Modify descriptor.value BEFORE applying discovery decorators",
+        "Discovery decorators (like @RabbitSubscribe) must see the wrapped method",
+        "Inner wrapper logic executes BEFORE original method",
+        "Order matters: wrap first, discover second"
+      ],
+      "common_mistakes": [
+        "Applying @RabbitSubscribe before modifying descriptor.value",
+        "Wrapping at instance level instead of prototype level",
+        "Assuming decorator stacking order equals execution order",
+        "Not understanding prototype vs instance method resolution"
+      ],
+      "benefits": [
+        "Predictable decorator execution order",
+        "Proper integration with external libraries",
+        "Clean composition of cross-cutting concerns",
+        "Type-safe decorator chains"
+      ],
+      "related": ["nestjs-decorator-timing-pattern", "moduleref-lazy-injection-pattern"],
+      "tags": ["nestjs", "decorators", "composition", "order", "architecture", "best-practices"]
     }
   ],
   "patterns": [
@@ -800,6 +942,52 @@
         "Simple systems where failure is rare"
       ],
       "related_patterns": ["exponential-backoff-with-jitter", "scheduled-retry-pattern", "atomic-retry-increment"]
+    },
+    {
+      "id": "decorator-wrapping-at-prototype",
+      "category": "architecture",
+      "name": "Prototype-level method wrapping in NestJS decorators",
+      "context": "Custom decorators need to wrap methods that will be discovered by external NestJS libraries",
+      "pattern": "Modify descriptor.value in decorator to wrap method at prototype level BEFORE applying discovery decorators",
+      "components": [
+        "Decorator function - Receives (target, propertyKey, descriptor)",
+        "Original method reference - Store descriptor.value",
+        "Wrapped function - Replaces descriptor.value with wrapper logic",
+        "Runtime DI - Use ModuleRef for lazy service injection",
+        "Discovery decorator - Apply to wrapped descriptor (e.g., @RabbitSubscribe)"
+      ],
+      "implementation_details": {
+        "wrapping_location": "Inside decorator function, not in onModuleInit or constructor",
+        "descriptor_modification": "descriptor.value = wrappedFunction",
+        "dependency_injection": "Use module-level ModuleRef variable for lazy DI",
+        "execution_order": "Wrapper logic → Original method",
+        "discovery_timing": "Discovery decorator sees wrapped method on prototype"
+      },
+      "trade_offs": {
+        "pros": [
+          "Works with library handler discovery mechanisms",
+          "Clean decorator composition pattern",
+          "Maintains NestJS DI principles",
+          "Type-safe with proper typing"
+        ],
+        "cons": [
+          "More complex than instance-level wrapping",
+          "Requires ModuleRef for DI in decorators",
+          "Need to understand prototype vs instance resolution"
+        ]
+      },
+      "when_to_use": [
+        "Wrapping methods discovered by external libraries (@RabbitSubscribe, @EventPattern, etc.)",
+        "Adding cross-cutting concerns to library-managed handlers",
+        "Building custom decorators that compose with library decorators",
+        "Situations where instance-level wrapping doesn't work"
+      ],
+      "when_to_avoid": [
+        "Simple metadata-only decorators",
+        "When library supports middleware/interceptors instead",
+        "Methods not discovered via prototype reflection"
+      ],
+      "related_patterns": ["moduleref-lazy-injection-pattern", "decorator-composition-order"]
     }
   ],
   "anti_patterns": [
@@ -948,14 +1136,37 @@
       ],
       "better_approach": "Use exponential backoff with jitter and scheduledAt field",
       "tags": ["retry", "backoff", "performance", "anti-pattern"]
+    },
+    {
+      "id": "instance-level-decorator-wrapping",
+      "name": "Wrapping decorator-discovered methods at instance level",
+      "problem": "Attempting to wrap methods in onModuleInit/constructor using instance property assignment",
+      "why_bad": [
+        "Doesn't affect prototype where libraries discover methods",
+        "Instance properties shadow prototype but don't modify handler registration",
+        "Wrapper logic never executes when library invokes handler",
+        "Tests may pass in isolation but fail in integration",
+        "Silent failure - no error, just wrong behavior"
+      ],
+      "better_approach": "Wrap at prototype level by modifying descriptor.value in decorator",
+      "example": {
+        "wrong": "// In onModuleInit\nthis.handleMessage = async (msg) => {\n  await doSomething();\n  return originalMethod.call(this, msg);\n}; // Instance property, doesn't affect prototype!",
+        "correct": "// In decorator\ndescriptor.value = async function wrapped(msg) {\n  await doSomething();\n  return originalMethod.apply(this, msg);\n}; // Modifies prototype directly"
+      },
+      "related_failures": [
+        "@RabbitSubscribe discovers unwrapped method",
+        "@EventPattern sees original method, not wrapper",
+        "Integration with external libraries fails silently"
+      ],
+      "tags": ["nestjs", "decorators", "prototype", "instance", "anti-pattern"]
     }
   ],
   "metadata": {
-    "total_skills": 19,
-    "total_patterns": 5,
-    "total_anti_patterns": 10,
-    "last_updated": "2026-01-13T11:20:00Z",
+    "total_skills": 22,
+    "total_patterns": 6,
+    "total_anti_patterns": 11,
+    "last_updated": "2026-01-13T16:45:00Z",
     "created_at": "2026-01-05T00:00:00Z",
-    "last_task": "AIRIS-65: Fix EventForge INBOX messageId Extraction"
+    "last_task": "AIRIS-67: Fix @InboxSubscribe Decorator Recording"
   }
 }

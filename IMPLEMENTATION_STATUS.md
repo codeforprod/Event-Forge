@@ -97,7 +97,7 @@
   - Status management methods
   - Returns RecordInboxMessageResult with isDuplicate flag
 
-### Phase 5: RabbitMQ Publishers (`@prodforcode/event-forge-rabbitmq`)
+### Phase 5: RabbitMQ Publishers (`@prodforcode/event-forge-rabbitmq-publisher`)
 
 **Publishers** (`packages/publisher-rabbitmq/src/`):
 - [x] `golevelup-publisher.ts` - GolevelupPublisher with:
@@ -165,7 +165,7 @@ All packages build successfully:
 - ✅ `@prodforcode/event-forge-core` - TypeScript compilation passed
 - ✅ `@prodforcode/event-forge-typeorm` - TypeScript compilation passed
 - ✅ `@prodforcode/event-forge-mongoose` - TypeScript compilation passed
-- ✅ `@prodforcode/event-forge-rabbitmq` - TypeScript compilation passed
+- ✅ `@prodforcode/event-forge-rabbitmq-publisher` - TypeScript compilation passed
 - ✅ `@prodforcode/event-forge-nestjs` - TypeScript compilation passed
 
 ## Resolved Issues
