@@ -1,4 +1,4 @@
-# @prodforcode/event-forge-rabbitmq
+# @prodforcode/event-forge-rabbitmq-publisher
 
 RabbitMQ publishers for the Universal Inbox-Outbox Pattern library.
 
@@ -9,7 +9,7 @@ RabbitMQ publishers for the Universal Inbox-Outbox Pattern library.
 Basic RabbitMQ publisher using `@golevelup/nestjs-rabbitmq` for immediate message delivery.
 
 ```typescript
-import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 const publisher = new GolevelupPublisher(
   amqpConnection,
@@ -58,7 +58,7 @@ await channel.assertExchange('events.delayed', 'x-delayed-message', {
 #### Usage
 
 ```typescript
-import { DelayedMessagePublisher } from '@prodforcode/event-forge-rabbitmq';
+import { DelayedMessagePublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 const publisher = new DelayedMessagePublisher(
   amqpConnection,
@@ -149,7 +149,7 @@ If the RabbitMQ server does not have the delayed message plugin enabled or the d
 RabbitMQ publisher using `@nestjs/microservices` for NestJS microservices architecture.
 
 ```typescript
-import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 const publisher = new MicroservicesPublisher(clientProxy);
 ```
@@ -157,7 +157,7 @@ const publisher = new MicroservicesPublisher(clientProxy);
 ## Installation
 
 ```bash
-npm install @prodforcode/event-forge-rabbitmq
+npm install @prodforcode/event-forge-rabbitmq-publisher
 ```
 
 Peer dependencies (install based on your needs):

@@ -79,7 +79,7 @@ npm install @prodforcode/event-forge-mongoose @nestjs/mongoose mongoose
 
 ```bash
 # For RabbitMQ
-npm install @prodforcode/event-forge-rabbitmq amqplib
+npm install @prodforcode/event-forge-rabbitmq-publisher amqplib
 
 # For RabbitMQ Consumer (NEW in v1.1.0)
 npm install @prodforcode/event-forge-rabbitmq-consumer @golevelup/nestjs-rabbitmq
@@ -141,7 +141,7 @@ import {
   OutboxMessageEntity,
   InboxMessageEntity,
 } from '@prodforcode/event-forge-typeorm';
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [
@@ -210,7 +210,7 @@ import {
   OutboxMessageSchema,
   InboxMessageSchema,
 } from '@prodforcode/event-forge-mongoose';
-import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { RabbitMQPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [

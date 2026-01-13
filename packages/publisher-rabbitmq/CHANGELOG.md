@@ -1,4 +1,4 @@
-# @prodforcode/event-forge-rabbitmq
+# @prodforcode/event-forge-rabbitmq-publisher
 
 ## 1.0.1
 

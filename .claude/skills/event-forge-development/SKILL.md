@@ -22,7 +22,7 @@ Event-Forge is a database-agnostic library implementing the Transactional Inbox-
 │  └── Python (SQLAlchemy)      → event-forge-inbox-outbox (PyPI)         │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Publishers (pluggable)                                                 │
-│  ├── RabbitMQ (@golevelup)    → @prodforcode/event-forge-rabbitmq      │
+│  ├── RabbitMQ (@golevelup)    → @prodforcode/event-forge-rabbitmq-publisher      │
 │  └── RabbitMQ (microservices) → For @nestjs/microservices               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -109,7 +109,7 @@ pending → processing → published
 ```typescript
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { TypeOrmOutboxRepository } from '@prodforcode/event-forge-typeorm';
-import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [

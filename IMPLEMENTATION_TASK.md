@@ -63,7 +63,7 @@ Create a database-agnostic, pluggable library implementing the Transactional Inb
 - [ ] `MongooseInboxRepository` - implements IInboxRepository
 - [ ] MongoDB indexes in `spec/migrations/mongodb/`
 
-### AC4: RabbitMQ Publisher (`@prodforcode/event-forge-rabbitmq`)
+### AC4: RabbitMQ Publisher (`@prodforcode/event-forge-rabbitmq-publisher`)
 
 - [ ] `GolevelupPublisher` - for @golevelup/nestjs-rabbitmq (event-forge style)
 - [ ] `MicroservicesPublisher` - for @nestjs/microservices (Holocron style)
@@ -207,7 +207,7 @@ interface IOutboxRepository {
 ```typescript
 import { InboxOutboxModule } from '@prodforcode/event-forge-nestjs';
 import { TypeOrmOutboxRepository } from '@prodforcode/event-forge-typeorm';
-import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { GolevelupPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [
@@ -225,7 +225,7 @@ export class AppModule {}
 
 ```typescript
 import { MongooseOutboxRepository } from '@prodforcode/event-forge-mongoose';
-import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq';
+import { MicroservicesPublisher } from '@prodforcode/event-forge-rabbitmq-publisher';
 
 @Module({
   imports: [

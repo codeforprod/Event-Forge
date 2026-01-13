@@ -72,8 +72,8 @@ All files                       |   67.02 |       50 |   47.61 |   66.29 |
 - @prodforcode/event-forge-core
 - @prodforcode/event-forge-mongoose
 - @prodforcode/event-forge-nestjs
-- @prodforcode/event-forge-rabbitmq
-- @prodforcode/event-forge-rabbitmq-consumer
+- @prodforcode/event-forge-rabbitmq-publisher
+- @prodforcode/event-forge-rabbitmq-publisher-consumer
 - @prodforcode/event-forge-typeorm
 
 **Build Time**: 2.952s (cached: 94ms on subsequent runs)
@@ -90,8 +90,8 @@ All 6 packages passed ESLint checks:
 - @prodforcode/event-forge-core
 - @prodforcode/event-forge-mongoose
 - @prodforcode/event-forge-nestjs
-- @prodforcode/event-forge-rabbitmq
-- @prodforcode/event-forge-rabbitmq-consumer
+- @prodforcode/event-forge-rabbitmq-publisher
+- @prodforcode/event-forge-rabbitmq-publisher-consumer
 - @prodforcode/event-forge-typeorm
 
 **Status**: PASSED
@@ -115,8 +115,8 @@ All 6 packages passed TypeScript strict type checking.
 **Summary Across All Packages**:
 - @prodforcode/event-forge-core: 6 tests passed
 - @prodforcode/event-forge-nestjs: 5 tests passed
-- @prodforcode/event-forge-rabbitmq: 7 tests passed
-- @prodforcode/event-forge-rabbitmq-consumer: 19 tests passed
+- @prodforcode/event-forge-rabbitmq-publisher-publisher: 7 tests passed
+- @prodforcode/event-forge-rabbitmq-publisher-consumer: 19 tests passed
 - @prodforcode/event-forge-mongoose: 38 tests passed
 - @prodforcode/event-forge-typeorm: 87 tests passed (4 skipped)
 

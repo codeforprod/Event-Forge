@@ -31,7 +31,7 @@ packages/
 │   └── errors/           # ProcessingError
 ├── adapter-typeorm/      # @prodforcode/event-forge-typeorm (PostgreSQL)
 ├── adapter-mongoose/     # @prodforcode/event-forge-mongoose (MongoDB)
-├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq
+├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq-publisher
 ├── nestjs/               # @prodforcode/event-forge-nestjs (DynamicModule)
 └── python/               # callairis-event-forge (PyPI)
 ```
