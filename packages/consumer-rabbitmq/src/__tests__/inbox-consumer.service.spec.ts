@@ -384,4 +384,29 @@ describe('InboxConsumerService', () => {
       ).rejects.toThrow('Unable to extract message ID');
     });
   });
+
+  describe('extractMessageId', () => {
+    it('should extract id from message body (EventForge format)', () => {
+      const message = {
+        id: 'test-uuid-123',
+        aggregateType: 'workflow',
+        payload: {},
+      };
+      const result = (service as any).extractMessageId(message as any, {});
+      expect(result).toBe('test-uuid-123');
+    });
+
+    it('should prefer custom extractor over message.id', () => {
+      const message = { id: 'body-id' };
+      const metadata = { messageIdExtractor: () => 'custom-id' };
+      const result = (service as any).extractMessageId(message as any, metadata);
+      expect(result).toBe('custom-id');
+    });
+
+    it('should fallback to properties.messageId', () => {
+      const message = { properties: { messageId: 'props-id' } };
+      const result = (service as any).extractMessageId(message as any, {});
+      expect(result).toBe('props-id');
+    });
+  });
 });

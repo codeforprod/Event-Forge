@@ -212,16 +212,24 @@ export class InboxConsumerService implements OnModuleInit {
     message: RabbitMQMessage,
     metadata: InboxSubscribeOptions,
   ): string {
+    // Priority 1: Custom extractor (highest priority)
     if (metadata.messageIdExtractor) {
       return metadata.messageIdExtractor(message);
     }
 
+    // Priority 2: EventForge format - message body with id field
+    const messageRecord = message as Record<string, unknown>;
+    if (messageRecord.id && typeof messageRecord.id === 'string') {
+      return messageRecord.id;
+    }
+
+    // Priority 3: Raw AMQP message with properties.messageId
     if (message.properties?.messageId) {
       return String(message.properties.messageId);
     }
 
     throw new Error(
-      'Unable to extract message ID. Please provide messageIdExtractor or ensure message has properties.messageId.',
+      'Unable to extract message ID. Provide messageIdExtractor, ensure message body has id field, or message has properties.messageId.',
     );
   }
 
