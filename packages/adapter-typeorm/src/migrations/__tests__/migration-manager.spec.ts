@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource, QueryRunner } from 'typeorm';
 
 import { EventForgeMigrationEntity } from '../../entities/event-forge-migration.entity';
 import { MigrationManager } from '../migration-manager';
@@ -104,22 +104,22 @@ describe('MigrationManager', () => {
       const migration1: Migration = {
         version: '1.0.0-001',
         name: 'AddColumn1',
-        async up(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table ADD COLUMN col1 TEXT;');
+        async up(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table ADD COLUMN col1 TEXT;');
         },
-        async down(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table DROP COLUMN col1;');
+        async down(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table DROP COLUMN col1;');
         },
       };
 
       const migration2: Migration = {
         version: '1.0.0-002',
         name: 'AddColumn2',
-        async up(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table ADD COLUMN col2 TEXT;');
+        async up(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table ADD COLUMN col2 TEXT;');
         },
-        async down(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table DROP COLUMN col2;');
+        async down(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table DROP COLUMN col2;');
         },
       };
 
@@ -214,11 +214,11 @@ describe('MigrationManager', () => {
       const migration: Migration = {
         version: '1.0.0-001',
         name: 'AddColumn',
-        async up(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table ADD COLUMN test_col TEXT;');
+        async up(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table ADD COLUMN test_col TEXT;');
         },
-        async down(ds: DataSource) {
-          await ds.query('ALTER TABLE test_table DROP COLUMN test_col;');
+        async down(queryRunner: QueryRunner) {
+          await queryRunner.query('ALTER TABLE test_table DROP COLUMN test_col;');
         },
       };
 
