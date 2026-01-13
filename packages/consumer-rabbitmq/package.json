@@ -1,6 +1,6 @@
 {
   "name": "@prodforcode/event-forge-rabbitmq-consumer",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "RabbitMQ consumer with automatic INBOX recording for Event-Forge",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
