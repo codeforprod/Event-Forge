@@ -17,7 +17,7 @@ export interface InboxConfig {
   /** Polling interval for retryable messages in milliseconds (default: 5000) */
   retryPollingInterval?: number;
 
-  /** Exponential backoff base in seconds (default: 2) */
+  /** Exponential backoff base in seconds (default: 5) */
   backoffBaseSeconds?: number;
 
   /** Maximum backoff time in seconds (default: 3600 = 1 hour) */
@@ -39,7 +39,7 @@ export const DEFAULT_INBOX_CONFIG: Required<InboxConfig> = {
   enableRetry: false,
   maxRetries: 3,
   retryPollingInterval: 5000,
-  backoffBaseSeconds: 2,
+  backoffBaseSeconds: 5,
   maxBackoffSeconds: 3600,
   retryBatchSize: 10,
   retryWorkerId: `${process.env.HOSTNAME || 'unknown'}-${process.pid}`,

@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { QueryRunner } from 'typeorm';
 
 import { Migration } from './migration.interface';
 
@@ -19,44 +19,44 @@ export const migration: Migration = {
   version: '1.0.6-001',
   name: 'AddInboxRetryFields',
 
-  async up(dataSource: DataSource): Promise<void> {
-    await dataSource.query(`
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       ADD COLUMN IF NOT EXISTS max_retries INTEGER NOT NULL DEFAULT 3;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP WITH TIME ZONE;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS idx_inbox_retry
       ON inbox_messages (status, retry_count, scheduled_at, created_at);
     `);
   },
 
-  async down(dataSource: DataSource): Promise<void> {
-    await dataSource.query(`
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
       DROP INDEX IF EXISTS idx_inbox_retry;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       DROP COLUMN IF EXISTS scheduled_at;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       DROP COLUMN IF EXISTS max_retries;
     `);
 
-    await dataSource.query(`
+    await queryRunner.query(`
       ALTER TABLE inbox_messages
       DROP COLUMN IF EXISTS retry_count;
     `);

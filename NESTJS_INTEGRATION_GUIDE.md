@@ -36,8 +36,15 @@ For delayed message support, install the RabbitMQ delayed message exchange plugi
 # Enable plugin
 rabbitmq-plugins enable rabbitmq_delayed_message_exchange
 
-# Restart RabbitMQ
-rabbitmqctl restart
+# Restart RabbitMQ (choose appropriate command for your system)
+# For systemd (Linux):
+sudo systemctl restart rabbitmq-server
+
+# For Docker:
+docker restart <rabbitmq-container>
+
+# For Homebrew (macOS):
+brew services restart rabbitmq
 ```
 
 **Verify Installation:**
@@ -377,8 +384,8 @@ export class UserService {
     // Use withTransaction for automatic transaction management
     return this.outboxService.withTransaction(async (transactionContext) => {
       // 1. Save user to database
-      const result = await this.dataSource.manager
-        .createQueryBuilder(transactionContext)
+      const result = await transactionContext
+        .createQueryBuilder()
         .insert()
         .into('users')
         .values({ email, name })
@@ -566,7 +573,7 @@ InboxOutboxModule.forRoot({
       enableRetry: true,              // Enable retry mechanism
       maxRetries: 3,                  // Retry up to 3 times
       retryPollingInterval: 5000,     // Poll every 5 seconds
-      backoffBaseSeconds: 2,          // Start with 2 second delay
+      backoffBaseSeconds: 5,          // Start with 2 second delay
       maxBackoffSeconds: 3600,        // Cap at 1 hour
       retryBatchSize: 10,             // Process 10 retry messages per batch
     },
@@ -1170,7 +1177,7 @@ InboxOutboxModule.forRoot({
       pollingInterval: 1000,      // Poll more frequently
       batchSize: 50,              // Process more messages per batch
       maxRetries: 5,              // More retry attempts
-      backoffBaseSeconds: 2,      // Faster initial retry
+      backoffBaseSeconds: 5,      // Faster initial retry
     },
   },
   inbox: {

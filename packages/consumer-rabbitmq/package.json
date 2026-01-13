@@ -31,6 +31,7 @@
     "@prodforcode/event-forge-core": "workspace:*"
   },
   "devDependencies": {
+    "@golevelup/nestjs-rabbitmq": "^7.0.0",
     "@nestjs/testing": "^10.0.0",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.0",

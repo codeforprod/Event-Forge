@@ -87,7 +87,7 @@ InboxOutboxModule.forRoot({
       enableRetry: true,           // NEW: Enable retry
       maxRetries: 3,               // NEW: Retry up to 3 times
       retryPollingInterval: 5000,  // NEW: Poll every 5 seconds
-      backoffBaseSeconds: 2,       // NEW: Exponential backoff base
+      backoffBaseSeconds: 5,       // NEW: Exponential backoff base
       maxBackoffSeconds: 3600,     // NEW: Max backoff (1 hour)
     },
   },
@@ -214,14 +214,14 @@ npx event-forge migration:list --data-source=./src/config/data-source.ts
 # Status | Version       | Name
 # -------|---------------|------------------------------
 # ✅     | 1.0.5-001     | InitialSchema
-# ⏳     | 1.1.0-001     | AddInboxRetryFields
+# ⏳     | 1.0.6-001     | AddInboxRetryFields
 
 # Run pending migrations
 npx event-forge migration:run --data-source=./src/config/data-source.ts
 
 # Expected output:
 # Running pending migrations...
-# ✓ Applied migration: 1.1.0-001 AddInboxRetryFields
+# ✓ Applied migration: 1.0.6-001 AddInboxRetryFields
 # Successfully applied 1 migration(s)
 
 # Verify
@@ -231,7 +231,7 @@ npx event-forge migration:list --data-source=./src/config/data-source.ts
 # Status | Version       | Name
 # -------|---------------|------------------------------
 # ✅     | 1.0.5-001     | InitialSchema
-# ✅     | 1.1.0-001     | AddInboxRetryFields
+# ✅     | 1.0.6-001     | AddInboxRetryFields
 ```
 
 **Option B: Manual Migration**
@@ -286,7 +286,7 @@ InboxOutboxModule.forRoot({
       // NEW: Retry configuration
       maxRetries: 3,                 // Retry up to 3 times
       retryPollingInterval: 5000,    // Poll every 5 seconds
-      backoffBaseSeconds: 2,         // Start with 2 second delay
+      backoffBaseSeconds: 5,         // Start with 2 second delay
       maxBackoffSeconds: 3600,       // Cap at 1 hour
       retryBatchSize: 10,            // Process 10 retry messages per batch
       retryWorkerId: 'worker-1',     // Optional: worker identifier
@@ -682,7 +682,7 @@ InboxOutboxModule.forRoot({
       // enableRetry: true,
       // maxRetries: 3,
       // retryPollingInterval: 5000,
-      // backoffBaseSeconds: 2,
+      // backoffBaseSeconds: 5,
       // maxBackoffSeconds: 3600,
 
       retentionDays: 30,  // Keep existing config

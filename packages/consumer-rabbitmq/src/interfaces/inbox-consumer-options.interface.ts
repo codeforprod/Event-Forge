@@ -60,7 +60,7 @@ export interface InboxSubscribeOptions {
 
   /**
    * Message ID extractor function
-   * If not provided, will use properties.messageId or fields.deliveryTag
+   * If not provided, will use properties.messageId
    */
   messageIdExtractor?: (message: RabbitMQMessage) => string;
 

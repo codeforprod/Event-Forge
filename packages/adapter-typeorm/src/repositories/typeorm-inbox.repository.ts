@@ -125,15 +125,45 @@ export class TypeOrmInboxRepository implements IInboxRepository {
 
   async findRetryable(limit: number): Promise<InboxMessage[]> {
     const now = new Date();
+    const messages: InboxMessage[] = [];
 
-    return this.repository
-      .createQueryBuilder('inbox')
-      .where('inbox.status = :status', { status: InboxMessageStatus.FAILED })
-      .andWhere('inbox.retryCount < inbox.maxRetries')
-      .andWhere('(inbox.scheduledAt IS NULL OR inbox.scheduledAt <= :now)', { now })
-      .orderBy('inbox.createdAt', 'ASC')
-      .limit(limit)
-      .getMany();
+    // Use SELECT FOR UPDATE SKIP LOCKED for atomic locking to prevent race conditions
+    // We need to use a transaction and update status atomically
+    const queryRunner = this.repository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Find and lock messages
+      const locked = await queryRunner.manager
+        .createQueryBuilder(InboxMessageEntity, 'inbox')
+        .where('inbox.status = :status', { status: InboxMessageStatus.FAILED })
+        .andWhere('inbox.retryCount < inbox.maxRetries')
+        .andWhere('(inbox.scheduledAt IS NULL OR inbox.scheduledAt <= :now)', { now })
+        .orderBy('inbox.createdAt', 'ASC')
+        .limit(limit)
+        .setLock('pessimistic_write_or_fail')
+        .getMany();
+
+      // Update status to PROCESSING atomically
+      for (const message of locked) {
+        await queryRunner.manager.update(
+          InboxMessageEntity,
+          { id: message.id },
+          { status: InboxMessageStatus.PROCESSING },
+        );
+      }
+
+      await queryRunner.commitTransaction();
+      messages.push(...locked);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+
+    return messages;
   }
 
   async deleteOlderThan(date: Date): Promise<number> {

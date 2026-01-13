@@ -166,7 +166,7 @@ export class MigrationManager {
     await queryRunner.startTransaction();
 
     try {
-      await migration.up(this.dataSource);
+      await migration.up(queryRunner);
 
       await queryRunner.manager
         .createQueryBuilder()
@@ -260,7 +260,7 @@ export class MigrationManager {
     await queryRunner.startTransaction();
 
     try {
-      await migration.down(this.dataSource);
+      await migration.down(queryRunner);
 
       await queryRunner.manager.delete(EventForgeMigrationEntity, recordId);
 

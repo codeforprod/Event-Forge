@@ -487,11 +487,11 @@ describe('OutboxService', () => {
       const scheduledAt = callArgs[3] as Date;
       expect(scheduledAt).toBeInstanceOf(Date);
 
-      // With retryCount=2, backoff should be 2 * 2^2 = 8 seconds (± jitter)
-      // scheduledAt should be at least 7 seconds in the future (accounting for jitter)
+      // With retryCount=2, backoff should be 5 * 2^2 = 20 seconds (± jitter)
+      // scheduledAt should be at least 18 seconds in the future (accounting for jitter)
       const scheduledTime = scheduledAt.getTime();
-      expect(scheduledTime).toBeGreaterThan(beforeTime + 7000);
-      expect(scheduledTime).toBeLessThan(afterTime + 10000);
+      expect(scheduledTime).toBeGreaterThan(beforeTime + 18000);
+      expect(scheduledTime).toBeLessThan(afterTime + 22000);
     });
 
     it('should mark as permanently failed when max retries exceeded', async () => {

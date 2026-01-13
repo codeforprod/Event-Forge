@@ -14,7 +14,7 @@ export interface OutboxConfig {
   /** Lock timeout in seconds (default: 300 = 5 minutes) */
   lockTimeoutSeconds?: number;
 
-  /** Exponential backoff base in seconds (default: 2) */
+  /** Exponential backoff base in seconds (default: 5) */
   backoffBaseSeconds?: number;
 
   /** Maximum backoff time in seconds (default: 3600 = 1 hour) */
@@ -41,7 +41,7 @@ export const DEFAULT_OUTBOX_CONFIG: Required<OutboxConfig> = {
   batchSize: 10,
   maxRetries: 3,
   lockTimeoutSeconds: 300,
-  backoffBaseSeconds: 2,
+  backoffBaseSeconds: 5,
   maxBackoffSeconds: 3600,
   cleanupInterval: 86400000,
   retentionDays: 7,

@@ -239,8 +239,8 @@ export class InboxService extends EventEmitter {
         return;
       }
 
-      // Process each message
-      await Promise.all(messages.map((message) => this.processMessage(message)));
+      // Process each message - use allSettled to continue processing even if some fail
+      await Promise.allSettled(messages.map((message) => this.processMessage(message)));
     } catch (error) {
       // Log error but don't stop polling
       this.emit('error', error);

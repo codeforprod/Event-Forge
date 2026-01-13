@@ -220,12 +220,8 @@ export class InboxConsumerService implements OnModuleInit {
       return String(message.properties.messageId);
     }
 
-    if (typeof message.fields?.deliveryTag === 'number') {
-      return message.fields.deliveryTag.toString();
-    }
-
     throw new Error(
-      'Unable to extract message ID. Please provide messageIdExtractor.',
+      'Unable to extract message ID. Please provide messageIdExtractor or ensure message has properties.messageId.',
     );
   }
 

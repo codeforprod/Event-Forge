@@ -134,18 +134,35 @@ export class MongooseInboxRepository implements IInboxRepository {
 
   async findRetryable(limit: number): Promise<InboxMessage[]> {
     const now = new Date();
+    const messages: InboxMessage[] = [];
 
-    const documents = await this.model
-      .find({
-        status: InboxMessageStatus.FAILED,
-        $expr: { $lt: ['$retryCount', '$maxRetries'] },
-        $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }],
-      })
-      .sort({ createdAt: 1 })
-      .limit(limit)
-      .exec();
+    // Use findOneAndUpdate for atomic locking to prevent race conditions
+    for (let i = 0; i < limit; i++) {
+      const document = await this.model.findOneAndUpdate(
+        {
+          status: InboxMessageStatus.FAILED,
+          $expr: { $lt: ['$retryCount', '$maxRetries'] },
+          $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }],
+        },
+        {
+          $set: {
+            status: InboxMessageStatus.PROCESSING,
+          },
+        },
+        {
+          sort: { createdAt: 1 },
+          new: true,
+        },
+      );
 
-    return documents.map((doc) => this.toInboxMessage(doc as InboxMessageDocument));
+      if (!document) {
+        break; // No more retryable messages
+      }
+
+      messages.push(this.toInboxMessage(document as InboxMessageDocument));
+    }
+
+    return messages;
   }
 
   async deleteOlderThan(date: Date): Promise<number> {

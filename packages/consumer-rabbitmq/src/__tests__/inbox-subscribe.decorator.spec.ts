@@ -20,7 +20,7 @@ describe('InboxSubscribe Decorator', () => {
     setMetadataMock = jest.fn(() => jest.fn());
     rabbitSubscribeMock = jest.fn(() => jest.fn());
 
-    (SetMetadata as jest.Mock) = setMetadataMock;
+    (SetMetadata as jest.Mock).mockImplementation(setMetadataMock);
     RabbitSubscribe.mockImplementation(rabbitSubscribeMock);
   });
 
