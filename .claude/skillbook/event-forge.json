@@ -563,6 +563,54 @@
       },
       "related": ["scheduled-retry-pattern"],
       "tags": ["database", "optimization", "indexing", "performance", "query-tuning"]
+    },
+    {
+      "id": "rabbitmq-deserialized-message-extraction",
+      "category": "bug-patterns",
+      "title": "Extract messageId from deserialized RabbitMQ message bodies",
+      "problem": "@golevelup/nestjs-rabbitmq passes deserialized message body to handlers, not raw AMQP message objects with properties.messageId",
+      "symptoms": [
+        "Error: 'Unable to extract message ID' when using EventForge-formatted messages",
+        "extractMessageId() throws error even though message has id field",
+        "Works with raw AMQP messages but fails with EventForge publisher messages",
+        "properties.messageId is undefined on deserialized message bodies"
+      ],
+      "root_cause": "RabbitMQ library deserializes message content before passing to handlers. EventForge publishers send messages with id field in body, but extractMessageId() only checked properties.messageId which doesn't exist on deserialized bodies.",
+      "investigation": [
+        "Check message structure received by handler - is it raw AMQP or deserialized body?",
+        "Verify if message has id field at root level (EventForge format)",
+        "Check if properties object exists (raw AMQP format)",
+        "Review RabbitMQ library documentation on message deserialization"
+      ],
+      "solution": {
+        "pattern": "Use priority-based extraction with type checking: custom extractor > message.id > properties.messageId",
+        "implementation": "private extractMessageId(message, metadata): string {\n  // Priority 1: Custom extractor\n  if (metadata.messageIdExtractor) {\n    return metadata.messageIdExtractor(message);\n  }\n  \n  // Priority 2: EventForge format - deserialized body with id field\n  const messageRecord = message as Record<string, unknown>;\n  if (messageRecord.id && typeof messageRecord.id === 'string') {\n    return messageRecord.id;\n  }\n  \n  // Priority 3: Raw AMQP format - properties.messageId\n  if (message.properties?.messageId) {\n    return String(message.properties.messageId);\n  }\n  \n  throw new Error('Unable to extract message ID...');\n}",
+        "key_changes": [
+          "Add check for message.id before properties.messageId",
+          "Cast message to Record<string, unknown> for type safety",
+          "Verify id exists AND is string type (prevent undefined/null/number)",
+          "Update error message to mention all extraction methods",
+          "Maintain backward compatibility with raw AMQP messages"
+        ]
+      },
+      "prevention": [
+        "Document that library deserializes messages by default",
+        "Test with both EventForge and raw AMQP message formats",
+        "Use type guards when extracting from dynamic message structures",
+        "Consider library-specific message handling in integration tests"
+      ],
+      "related_patterns": [
+        "Priority-based extraction with fallbacks",
+        "Type-safe property access on dynamic objects",
+        "Backward compatibility with multiple message formats"
+      ],
+      "example": {
+        "file": "packages/consumer-rabbitmq/src/services/inbox-consumer.service.ts",
+        "method": "extractMessageId",
+        "fix_commit": "AIRIS-65",
+        "tests": "packages/consumer-rabbitmq/src/__tests__/inbox-consumer.service.spec.ts:388-411"
+      },
+      "tags": ["rabbitmq", "message-extraction", "deserialization", "type-checking", "golevelup", "nestjs", "bug-fix"]
     }
   ],
   "patterns": [
@@ -903,11 +951,11 @@
     }
   ],
   "metadata": {
-    "total_skills": 18,
+    "total_skills": 19,
     "total_patterns": 5,
     "total_anti_patterns": 10,
-    "last_updated": "2026-01-12T00:00:00Z",
+    "last_updated": "2026-01-13T11:20:00Z",
     "created_at": "2026-01-05T00:00:00Z",
-    "last_task": "AIRIS-63: feat(inbox): add retry mechanism with exponential backoff and feat(outbox): implement exponential backoff for failed messages"
+    "last_task": "AIRIS-65: Fix EventForge INBOX messageId Extraction"
   }
 }
