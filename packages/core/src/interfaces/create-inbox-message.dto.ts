@@ -13,4 +13,7 @@ export interface CreateInboxMessageDto {
 
   /** Event payload data */
   payload: Record<string, unknown>;
+
+  /** Maximum retry attempts (optional, defaults from config) */
+  maxRetries?: number;
 }

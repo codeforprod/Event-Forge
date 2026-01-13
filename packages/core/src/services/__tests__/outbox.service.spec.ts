@@ -444,12 +444,54 @@ describe('OutboxService', () => {
         'msg-1',
         'Network error',
         false,
+        expect.any(Date),
       );
       expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_FAILED, {
         message,
         error,
         permanent: false,
       });
+    });
+
+    it('should calculate exponential backoff with scheduledAt', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        aggregateType: 'User',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: OutboxMessageStatus.PENDING,
+        retryCount: 2,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const error = new Error('Network error');
+      mockPublisher.publish.mockRejectedValue(error);
+      mockRepository.markFailed.mockResolvedValue(undefined);
+
+      mockRepository.releaseStaleLocks.mockResolvedValue(0);
+      mockRepository.fetchAndLockPending.mockResolvedValue([message]);
+
+      const beforeTime = Date.now();
+      await service.processMessage('msg-1');
+      const afterTime = Date.now();
+
+      expect(mockRepository.markFailed).toHaveBeenCalled();
+      const callArgs = mockRepository.markFailed.mock.calls[0];
+      expect(callArgs[0]).toBe('msg-1');
+      expect(callArgs[1]).toBe('Network error');
+      expect(callArgs[2]).toBe(false);
+
+      const scheduledAt = callArgs[3] as Date;
+      expect(scheduledAt).toBeInstanceOf(Date);
+
+      // With retryCount=2, backoff should be 5 * 2^2 = 20 seconds (± jitter)
+      // scheduledAt should be at least 18 seconds in the future (accounting for jitter)
+      const scheduledTime = scheduledAt.getTime();
+      expect(scheduledTime).toBeGreaterThan(beforeTime + 18000);
+      expect(scheduledTime).toBeLessThan(afterTime + 22000);
     });
 
     it('should mark as permanently failed when max retries exceeded', async () => {

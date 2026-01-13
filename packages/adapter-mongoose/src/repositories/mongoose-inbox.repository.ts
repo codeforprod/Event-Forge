@@ -40,6 +40,8 @@ export class MongooseInboxRepository implements IInboxRepository {
       eventType: dto.eventType,
       payload: dto.payload,
       status: InboxMessageStatus.RECEIVED,
+      retryCount: 0,
+      maxRetries: dto.maxRetries ?? 3,
     });
 
     try {
@@ -110,16 +112,57 @@ export class MongooseInboxRepository implements IInboxRepository {
     );
   }
 
-  async markFailed(id: string, error: string): Promise<void> {
+  async markFailed(id: string, error: string, permanent = false, scheduledAt?: Date): Promise<void> {
+    const status = permanent
+      ? InboxMessageStatus.PERMANENTLY_FAILED
+      : InboxMessageStatus.FAILED;
+
     await this.model.updateOne(
       { _id: id },
       {
         $set: {
-          status: InboxMessageStatus.FAILED,
+          status,
           errorMessage: error,
+          scheduledAt: scheduledAt ?? null,
+        },
+        $inc: {
+          retryCount: 1,
         },
       },
     );
+  }
+
+  async findRetryable(limit: number): Promise<InboxMessage[]> {
+    const now = new Date();
+    const messages: InboxMessage[] = [];
+
+    // Use findOneAndUpdate for atomic locking to prevent race conditions
+    for (let i = 0; i < limit; i++) {
+      const document = await this.model.findOneAndUpdate(
+        {
+          status: InboxMessageStatus.FAILED,
+          $expr: { $lt: ['$retryCount', '$maxRetries'] },
+          $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }],
+        },
+        {
+          $set: {
+            status: InboxMessageStatus.PROCESSING,
+          },
+        },
+        {
+          sort: { createdAt: 1 },
+          new: true,
+        },
+      );
+
+      if (!document) {
+        break; // No more retryable messages
+      }
+
+      messages.push(this.toInboxMessage(document as InboxMessageDocument));
+    }
+
+    return messages;
   }
 
   async deleteOlderThan(date: Date): Promise<number> {
@@ -143,6 +186,9 @@ export class MongooseInboxRepository implements IInboxRepository {
       payload: doc.payload,
       status: doc.status,
       errorMessage: doc.errorMessage ?? undefined,
+      retryCount: doc.retryCount,
+      maxRetries: doc.maxRetries,
+      scheduledAt: doc.scheduledAt ?? undefined,
       createdAt: doc.createdAt,
     };
   }

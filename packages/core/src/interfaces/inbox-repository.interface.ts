@@ -48,8 +48,17 @@ export interface IInboxRepository {
    * Mark a message as failed
    * @param id Message ID
    * @param error Error message
+   * @param permanent If true, marks as permanently failed (no more retries)
+   * @param scheduledAt Optional timestamp for retry scheduling (backoff)
    */
-  markFailed(id: string, error: string): Promise<void>;
+  markFailed(id: string, error: string, permanent?: boolean, scheduledAt?: Date): Promise<void>;
+
+  /**
+   * Find retryable messages (failed messages that haven't exceeded max retries)
+   * @param limit Maximum number of messages to fetch
+   * @returns Array of messages ready for retry
+   */
+  findRetryable(limit: number): Promise<InboxMessage[]>;
 
   /**
    * Delete old processed messages

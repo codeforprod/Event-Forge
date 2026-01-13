@@ -101,6 +101,40 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  packages/consumer-rabbitmq:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^10.0.0 || ^11.0.0
+        version: 10.4.20(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^10.0.0 || ^11.0.0
+        version: 10.4.20(@nestjs/common@10.4.20)(@nestjs/microservices@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@prodforcode/event-forge-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@golevelup/nestjs-rabbitmq':
+        specifier: ^7.0.0
+        version: 7.1.1(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/testing':
+        specifier: ^10.0.0
+        version: 10.4.22(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)
+      '@types/jest':
+        specifier: ^29.5.11
+        version: 29.5.14
+      '@types/node':
+        specifier: ^20.10.0
+        version: 20.19.27
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@20.19.27)
+      ts-jest:
+        specifier: ^29.1.1
+        version: 29.4.6(@babel/core@7.28.5)(jest@29.7.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+
   packages/core:
     dependencies:
       reflect-metadata:
@@ -743,6 +777,17 @@ packages:
       lodash: 4.17.21
     dev: false
 
+  /@golevelup/nestjs-discovery@6.1.1(@nestjs/common@10.4.20)(@nestjs/core@10.4.20):
+    resolution: {integrity: sha512-DlTxxh2+J/roIDIsxVv+Z4Rfr7Q6V1YJfzjWw81BbVGj1eUr/Hm5k5A6kvlHx0m6wMXIao/PYpKngKaVtZsOaw==}
+    peerDependencies:
+      '@nestjs/common': ^11.1.9
+      '@nestjs/core': ^11.1.9
+    dependencies:
+      '@nestjs/common': 10.4.20(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 10.4.20(@nestjs/common@10.4.20)(@nestjs/microservices@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      lodash: 4.17.21
+    dev: true
+
   /@golevelup/nestjs-rabbitmq@5.7.0(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2):
     resolution: {integrity: sha512-0j+r+Fg515UCJUds8irkTpQwps0LVGnEP1aLGr4VDflGdr1jmvVkFukfUtpa/cMuKC9vFe2v1LBe/D584Vpobg==}
     peerDependencies:
@@ -760,6 +805,24 @@ packages:
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
     dev: false
+
+  /@golevelup/nestjs-rabbitmq@7.1.1(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2):
+    resolution: {integrity: sha512-LPLqKc3CSKPtSJJ1j5Y8hs+SVtp6K6f42vQHXHE+KVIg3A7M+DYbuI0AF9s72sBBUgbBz9kET6rZlcaybo1ubA==}
+    peerDependencies:
+      '@nestjs/common': ^11.1.9
+      '@nestjs/core': ^11.1.9
+      reflect-metadata: ^0.2.2
+      rxjs: ^7.8.1
+    dependencies:
+      '@golevelup/nestjs-discovery': 6.1.1(@nestjs/common@10.4.20)(@nestjs/core@10.4.20)
+      '@nestjs/common': 10.4.20(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 10.4.20(@nestjs/common@10.4.20)(@nestjs/microservices@10.4.20)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      amqp-connection-manager: 4.1.15(amqplib@0.10.9)
+      amqplib: 0.10.9
+      lodash: 4.17.21
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
+    dev: true
 
   /@humanwhocodes/config-array@0.13.0:
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -1567,7 +1630,6 @@ packages:
     dependencies:
       amqplib: 0.10.9
       promise-breaker: 6.0.0
-    dev: false
 
   /amqplib@0.10.9:
     resolution: {integrity: sha512-jwSftI4QjS3mizvnSnOrPGYiUnm1vI2OP1iXeOUz5pb74Ua0nbf6nPyyTzuiCLEE3fMpaJORXh2K/TQ08H5xGA==}
@@ -3819,7 +3881,6 @@ packages:
 
   /lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: false
 
   /lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
@@ -4314,7 +4375,6 @@ packages:
 
   /promise-breaker@6.0.0:
     resolution: {integrity: sha512-BthzO9yTPswGf7etOBiHCVuugs2N01/Q/94dIPls48z2zCmrnDptUUZzfIb+41xq0MnYZ/BzmOd6ikDR4ibNZA==}
-    dev: false
 
   /prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}

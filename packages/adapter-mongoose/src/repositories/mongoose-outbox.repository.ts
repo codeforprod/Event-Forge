@@ -93,7 +93,7 @@ export class MongooseOutboxRepository implements IOutboxRepository {
     );
   }
 
-  async markFailed(id: string, error: string, permanent = false): Promise<void> {
+  async markFailed(id: string, error: string, permanent = false, scheduledAt?: Date): Promise<void> {
     const message = await this.model.findById(id);
 
     if (!message) {
@@ -110,6 +110,7 @@ export class MongooseOutboxRepository implements IOutboxRepository {
         $set: {
           status,
           errorMessage: error,
+          scheduledAt: scheduledAt ?? null,
           lockedBy: null,
           lockedAt: null,
         },

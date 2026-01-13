@@ -34,8 +34,9 @@ export interface IOutboxRepository {
    * @param id Message ID
    * @param error Error message
    * @param permanent If true, marks as permanently failed (no more retries)
+   * @param scheduledAt Optional timestamp for retry scheduling (backoff)
    */
-  markFailed(id: string, error: string, permanent?: boolean): Promise<void>;
+  markFailed(id: string, error: string, permanent?: boolean, scheduledAt?: Date): Promise<void>;
 
   /**
    * Release a lock on a message

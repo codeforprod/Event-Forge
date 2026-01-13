@@ -47,6 +47,15 @@ export class InboxMessageEntity implements InboxMessage {
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
 
+  @Column({ name: 'retry_count', type: 'int', default: 0 })
+  retryCount: number;
+
+  @Column({ name: 'max_retries', type: 'int', default: 3 })
+  maxRetries: number;
+
+  @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
+  scheduledAt?: Date;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

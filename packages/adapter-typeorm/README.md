@@ -15,6 +15,8 @@ npm install @prodforcode/event-forge-typeorm typeorm
 - ✅ Optimized repository implementations with SELECT FOR UPDATE SKIP LOCKED
 - ✅ Automatic database migration generation
 - ✅ CLI tool for migration management
+- ✅ **Migration versioning and tracking system**
+- ✅ **Automatic migration discovery and execution**
 - ✅ Full TypeScript support
 
 ## Quick Start
@@ -166,11 +168,39 @@ import * as fs from 'fs';
 fs.writeFileSync('migration.sql', sqlFile);
 ```
 
+## Migration Versioning System
+
+Event-Forge includes a comprehensive migration management system that tracks applied migrations and automatically discovers pending ones when upgrading between versions.
+
+See [MIGRATIONS.md](./MIGRATIONS.md) for complete documentation.
+
+### Quick Overview
+
+When upgrading Event-Forge (e.g., 1.0.5 → 1.0.6), the migration system:
+
+1. Tracks which migrations have been applied
+2. Discovers new migrations from the package
+3. Runs pending migrations automatically or on-demand
+4. Supports rollback if needed
+
+### Usage
+
+```bash
+# List all migrations with status
+npx event-forge migration:list --data-source=./src/data-source.ts
+
+# Run pending migrations
+npx event-forge migration:run --data-source=./src/data-source.ts
+
+# Rollback last migration
+npx event-forge migration:rollback --data-source=./src/data-source.ts
+```
+
 ## CLI Reference
 
 ### `event-forge migration:generate`
 
-Generate Event-Forge database migration.
+Generate Event-Forge database migration for NEW projects.
 
 **Options:**
 
@@ -199,6 +229,56 @@ npx event-forge migration:generate \
   --format=typeorm \
   --output=./src/migrations \
   --filename=1704657600000-EventForge.ts
+```
+
+### `event-forge migration:list`
+
+List all Event-Forge migrations with their status.
+
+**Options:**
+
+- `-d, --data-source <path>` - Path to TypeORM DataSource configuration file (required)
+- `-m, --migrations-path <path>` - Custom migrations directory path (optional)
+
+**Example:**
+
+```bash
+npx event-forge migration:list --data-source=./src/data-source.ts
+```
+
+### `event-forge migration:run`
+
+Run pending Event-Forge migrations.
+
+**Options:**
+
+- `-d, --data-source <path>` - Path to TypeORM DataSource configuration file (required)
+- `-m, --migrations-path <path>` - Custom migrations directory path (optional)
+
+**Example:**
+
+```bash
+npx event-forge migration:run --data-source=./src/data-source.ts
+```
+
+### `event-forge migration:rollback`
+
+Rollback Event-Forge migrations.
+
+**Options:**
+
+- `-d, --data-source <path>` - Path to TypeORM DataSource configuration file (required)
+- `-m, --migrations-path <path>` - Custom migrations directory path (optional)
+- `-c, --count <number>` - Number of migrations to rollback (default: 1)
+
+**Examples:**
+
+```bash
+# Rollback last migration
+npx event-forge migration:rollback --data-source=./src/data-source.ts
+
+# Rollback last 2 migrations
+npx event-forge migration:rollback --data-source=./src/data-source.ts --count=2
 ```
 
 ## Database Schema

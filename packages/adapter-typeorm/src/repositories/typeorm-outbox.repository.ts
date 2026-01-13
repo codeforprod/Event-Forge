@@ -91,7 +91,7 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
     } as never);
   }
 
-  async markFailed(id: string, error: string, permanent = false): Promise<void> {
+  async markFailed(id: string, error: string, permanent = false, scheduledAt?: Date): Promise<void> {
     const status = permanent
       ? OutboxMessageStatus.PERMANENTLY_FAILED
       : OutboxMessageStatus.FAILED;
@@ -104,6 +104,7 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
         status,
         retryCount: () => 'retry_count + 1',
         errorMessage: error,
+        scheduledAt: scheduledAt ?? null,
         lockedBy: null,
         lockedAt: null,
       } as never)

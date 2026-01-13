@@ -180,9 +180,35 @@ export class OutboxService extends EventEmitter {
       return;
     }
 
-    // Mark as failed (will be retried)
-    await this.repository.markFailed(message.id, errorMessage, false);
+    // Calculate exponential backoff with jitter
+    const backoffDelay = this.calculateBackoff(message.retryCount);
+    const scheduledAt = new Date(Date.now() + backoffDelay);
+
+    // Mark as failed with scheduled retry
+    await this.repository.markFailed(message.id, errorMessage, false, scheduledAt);
     this.emit(OutboxEvents.MESSAGE_FAILED, { message, error, permanent: false });
+  }
+
+  /**
+   * Calculate exponential backoff delay in milliseconds
+   * Formula: min(backoffBaseSeconds * 2^retryCount, maxBackoffSeconds) + jitter
+   */
+  private calculateBackoff(retryCount: number): number {
+    const baseDelaySeconds = this.config.backoffBaseSeconds;
+    const maxDelaySeconds = this.config.maxBackoffSeconds;
+
+    // Exponential backoff: base * 2^retryCount
+    const exponentialDelay = baseDelaySeconds * Math.pow(2, retryCount);
+
+    // Apply max limit
+    const cappedDelay = Math.min(exponentialDelay, maxDelaySeconds);
+
+    // Add jitter (±10% randomization to prevent thundering herd)
+    const jitter = cappedDelay * 0.1 * (Math.random() * 2 - 1);
+    const finalDelay = cappedDelay + jitter;
+
+    // Convert to milliseconds
+    return Math.max(0, finalDelay * 1000);
   }
 
   /**

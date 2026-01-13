@@ -47,6 +47,21 @@ export const InboxMessageSchema = new Schema<InboxMessageDocument>(
       default: null,
       index: true,
     },
+    retryCount: {
+      type: Number,
+      default: 0,
+      required: true,
+    },
+    maxRetries: {
+      type: Number,
+      default: 3,
+      required: true,
+    },
+    scheduledAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
@@ -91,6 +106,21 @@ InboxMessageSchema.index(
   },
   {
     name: 'idx_inbox_cleanup',
+  },
+);
+
+/**
+ * Index for retry operations
+ */
+InboxMessageSchema.index(
+  {
+    status: 1,
+    retryCount: 1,
+    scheduledAt: 1,
+    createdAt: 1,
+  },
+  {
+    name: 'idx_inbox_retry',
   },
 );
 
