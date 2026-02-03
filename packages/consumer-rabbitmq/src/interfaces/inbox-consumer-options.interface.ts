@@ -69,4 +69,29 @@ export interface InboxSubscribeOptions {
    * If not provided, will use properties.type or routingKey
    */
   eventTypeExtractor?: (message: RabbitMQMessage) => string;
+
+  /**
+   * Maximum number of retry attempts before marking as permanently failed
+   * Default: uses message.maxRetries from inbox record (typically 3)
+   */
+  maxRetries?: number;
+
+  /**
+   * Whether to enable automatic retry scheduling on failure
+   * Default: true
+   */
+  enableRetry?: boolean;
+
+  /**
+   * Base delay in seconds for exponential backoff calculation
+   * Formula: min(backoffBaseSeconds * 2^retryCount, maxBackoffSeconds)
+   * Default: 5
+   */
+  backoffBaseSeconds?: number;
+
+  /**
+   * Maximum delay in seconds for exponential backoff
+   * Default: 3600 (1 hour)
+   */
+  maxBackoffSeconds?: number;
 }

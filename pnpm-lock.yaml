@@ -112,6 +112,9 @@ importers:
       '@prodforcode/event-forge-core':
         specifier: workspace:*
         version: link:../core
+      '@prodforcode/event-forge-nestjs':
+        specifier: workspace:*
+        version: link:../nestjs
     devDependencies:
       '@golevelup/nestjs-rabbitmq':
         specifier: ^7.0.0
