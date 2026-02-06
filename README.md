@@ -22,6 +22,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 | `@prodforcode/event-forge-typeorm` | TypeORM adapter for PostgreSQL/MySQL | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-typeorm.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-typeorm) |
 | `@prodforcode/event-forge-mongoose` | Mongoose adapter for MongoDB | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-mongoose.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-mongoose) |
 | `@prodforcode/event-forge-rabbitmq-publisher` | RabbitMQ publisher | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-rabbitmq-publisher.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-rabbitmq-publisher) |
+| `@prodforcode/event-forge-rabbitmq-consumer` | RabbitMQ consumer with automatic inbox recording | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-rabbitmq-consumer.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-rabbitmq-consumer) |
 | `@prodforcode/event-forge-nestjs` | NestJS integration module | [![npm](https://img.shields.io/npm/v/@prodforcode/event-forge-nestjs.svg)](https://www.npmjs.com/package/@prodforcode/event-forge-nestjs) |
 
 ### Python
@@ -143,6 +144,42 @@ await publisher.connect();
 ```
 
 #### 5. Handle Incoming Messages (Inbox)
+
+**Option A: Using `@InboxSubscribe` decorator with RabbitMQ (Recommended)**
+
+```bash
+npm install @prodforcode/event-forge-rabbitmq-consumer
+```
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InboxSubscribe } from '@prodforcode/event-forge-rabbitmq-consumer';
+
+@Injectable()
+export class OrderEventHandler {
+  @InboxSubscribe({
+    exchange: 'events',
+    routingKey: 'order.placed',
+    queue: 'my-service.order.placed',
+    source: 'order-service',
+    // Retry configuration
+    maxRetries: 5,
+    enableRetry: true,
+    backoffBaseSeconds: 10,
+  })
+  async handleOrderPlaced(message: any) {
+    // Automatic features:
+    // - Message recorded in inbox before handler execution
+    // - Duplicate messages automatically filtered
+    // - Errors trigger retry with exponential backoff
+    // - Permanent failure after maxRetries exceeded
+    console.log('Processing order:', message.payload);
+    await this.processOrder(message);
+  }
+}
+```
+
+**Option B: Manual inbox recording**
 
 ```typescript
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -374,7 +411,8 @@ asyncio.run(start_background_workers())
 - `received` - Message received, waiting to be processed
 - `processing` - Currently being processed
 - `processed` - Successfully processed
-- `failed` - Processing failed
+- `failed` - Processing failed, scheduled for retry
+- `permanently_failed` - Processing failed after max retries or non-recoverable error
 
 ## 📊 Database Schema
 
@@ -408,18 +446,22 @@ CREATE INDEX idx_outbox_created ON outbox_messages(created_at);
 ```sql
 CREATE TABLE inbox_messages (
   id VARCHAR(36) PRIMARY KEY,
-  message_id VARCHAR(255) UNIQUE NOT NULL,
+  message_id VARCHAR(255) NOT NULL,
   source VARCHAR(255) NOT NULL,
   event_type VARCHAR(255) NOT NULL,
   payload JSONB NOT NULL,
   status VARCHAR(50) NOT NULL,
+  retry_count INTEGER DEFAULT 0,
+  max_retries INTEGER DEFAULT 3,
   error_message TEXT,
+  scheduled_at TIMESTAMP,           -- Next retry time (for failed messages)
   created_at TIMESTAMP DEFAULT NOW(),
   processed_at TIMESTAMP
 );
 
-CREATE UNIQUE INDEX idx_inbox_message_id ON inbox_messages(message_id);
+CREATE UNIQUE INDEX idx_inbox_message_source ON inbox_messages(message_id, source);
 CREATE INDEX idx_inbox_status ON inbox_messages(status);
+CREATE INDEX idx_inbox_status_scheduled ON inbox_messages(status, scheduled_at);
 CREATE INDEX idx_inbox_created ON inbox_messages(created_at);
 ```
 
@@ -444,9 +486,41 @@ CREATE INDEX idx_inbox_created ON inbox_messages(created_at);
 
 ```typescript
 {
-  retentionDays: 30,  // Days to keep processed messages (default: 30)
+  retentionDays: 30,           // Days to keep processed messages (default: 30)
+  enableRetry: true,           // Enable automatic retry polling (default: false)
+  retryPollingInterval: 5000,  // Polling interval in ms (default: 5000)
+  maxRetries: 3,               // Max retry attempts (default: 3)
+  backoffBaseSeconds: 5,       // Base delay for exponential backoff (default: 5)
+  maxBackoffSeconds: 3600,     // Max delay in seconds (default: 3600 = 1 hour)
 }
 ```
+
+### Inbox Retry with Exponential Backoff
+
+When a message handler fails, the inbox automatically schedules a retry using exponential backoff:
+
+```
+delay = min(backoffBaseSeconds × 2^retryCount, maxBackoffSeconds) ± 10% jitter
+```
+
+**Example retry schedule (default settings):**
+
+| Retry | Delay |
+|-------|-------|
+| 1 | ~5 seconds |
+| 2 | ~10 seconds |
+| 3 | ~20 seconds |
+| 4 | ~40 seconds |
+| 5 | ~80 seconds |
+| 6+ | Capped at 1 hour |
+
+**Important**: To enable retry execution, either:
+1. Set `enableRetry: true` in inbox config (automatic polling)
+2. Call `inboxService.startRetryPolling()` manually
+
+Messages are marked as **permanently failed** when:
+- `retryCount >= maxRetries`
+- Handler throws `ProcessingError` (signals non-recoverable error)
 
 ## 🔧 Advanced Usage
 
@@ -554,6 +628,8 @@ npm run test:integration
 - `receiveMessage(dto)` - Receive and process message with deduplication
 - `registerHandler(eventType, handler)` - Register event handler
 - `unregisterHandler(eventType, handler)` - Unregister event handler
+- `startRetryPolling()` - Start polling for failed messages due for retry
+- `stopRetryPolling()` - Stop retry polling
 - `cleanup()` - Remove old processed messages
 
 ## 🤝 Contributing

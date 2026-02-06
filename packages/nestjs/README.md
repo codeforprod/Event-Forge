@@ -12,7 +12,8 @@ pnpm add @prodforcode/event-forge-nestjs @prodforcode/event-forge-core
 
 ## Features
 
-- **Automatic Polling Management**: Outbox polling starts automatically on application bootstrap and stops gracefully on shutdown
+- **Automatic Polling Management**: Outbox and Inbox polling starts automatically on application bootstrap and stops gracefully on shutdown
+- **Inbox Retry with Exponential Backoff**: Failed messages are automatically retried with configurable backoff strategy
 - **Configurable Lifecycle**: Control automatic polling behavior via `lifecycle.autoStart` option
 - **Dependency Injection**: Full NestJS DI support for repositories and services
 - **Database Agnostic**: Works with any database adapter (TypeORM, Mongoose, etc.)
@@ -92,6 +93,62 @@ export class AppModule {
 }
 ```
 
+### Inbox Retry Polling
+
+When `enableRetry: true` is set in inbox config, the `InboxService` will automatically poll for failed messages that are due for retry:
+
+```typescript
+@Module({
+  imports: [
+    InboxOutboxModule.forRootAsync({
+      useFactory: () => ({
+        inbox: {
+          repository: TypeOrmInboxRepository,
+          config: {
+            enableRetry: true, // Enable retry polling
+            retryPollingInterval: 5000, // Check every 5 seconds
+            maxRetries: 5,
+            backoffBaseSeconds: 10,
+            maxBackoffSeconds: 1800, // 30 minutes max
+          },
+        },
+        // ... other config
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+With this configuration:
+- Failed messages are automatically retried with exponential backoff
+- Polling starts automatically when the application boots (if `lifecycle.autoStart` is true)
+- Messages exceeding `maxRetries` are marked as permanently failed
+
+#### Manual Retry Polling Control
+
+If you need fine-grained control over retry polling:
+
+```typescript
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { InboxService } from '@prodforcode/event-forge-core';
+
+@Injectable()
+export class RetryPollingService implements OnModuleInit, OnModuleDestroy {
+  constructor(private readonly inboxService: InboxService) {}
+
+  onModuleInit() {
+    // Start retry polling manually
+    this.inboxService.startRetryPolling();
+  }
+
+  onModuleDestroy() {
+    // Stop retry polling on shutdown
+    this.inboxService.stopRetryPolling();
+  }
+}
+```
+
 ## Configuration
 
 ### Lifecycle Options
@@ -121,6 +178,14 @@ InboxOutboxModule.forRootAsync({
     },
     inbox: {
       repository: InboxRepositoryClass,
+      config: {
+        // Retry configuration for failed messages
+        enableRetry: true, // Enable automatic retry polling (default: false)
+        retryPollingInterval: 5000, // Poll interval in ms (default: 5000)
+        maxRetries: 3, // Max retry attempts (default: 3)
+        backoffBaseSeconds: 5, // Base delay for exponential backoff (default: 5)
+        maxBackoffSeconds: 3600, // Max delay cap in seconds (default: 3600 = 1 hour)
+      },
     },
     publisher: PublisherClass,
     lifecycle: {
@@ -128,6 +193,43 @@ InboxOutboxModule.forRootAsync({
     },
   }),
 });
+```
+
+### Inbox Configuration Options
+
+```typescript
+interface InboxConfig {
+  /**
+   * Enable automatic retry polling for failed messages
+   * @default false
+   */
+  enableRetry?: boolean;
+
+  /**
+   * Polling interval in milliseconds to check for messages due for retry
+   * @default 5000
+   */
+  retryPollingInterval?: number;
+
+  /**
+   * Maximum number of retry attempts before marking as permanently failed
+   * @default 3
+   */
+  maxRetries?: number;
+
+  /**
+   * Base delay in seconds for exponential backoff calculation
+   * Formula: min(backoffBaseSeconds × 2^retryCount, maxBackoffSeconds)
+   * @default 5
+   */
+  backoffBaseSeconds?: number;
+
+  /**
+   * Maximum delay in seconds for exponential backoff
+   * @default 3600 (1 hour)
+   */
+  maxBackoffSeconds?: number;
+}
 ```
 
 ## Advanced Usage
