@@ -1,4 +1,11 @@
-name: Release
+# NPM Release — publish @prodforcode/event-forge-* packages to npmjs
+#
+# Triggers:
+#   - push to main: changesets creates release PR or publishes packages
+#
+# After NPM publish succeeds, triggers python-release.yml to publish Python package
+
+name: NPM Release
 
 on:
   push:
@@ -63,49 +70,7 @@ jobs:
     name: Publish Python Package
     needs: release
     if: needs.release.outputs.published == 'true'
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/event-forge
+    uses: ./.github/workflows/python-release.yml
     permissions:
-      id-token: write
       contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8.15.0
-
-      - name: Setup Node.js (for version sync)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Sync Python version with core package
-        run: pnpm run sync-versions
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install build tools
-        run: python -m pip install --upgrade pip build
-
-      - name: Build Python package
-        working-directory: packages/python
-        run: python -m build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: packages/python/dist/
-          attestations: true
+      id-token: write
