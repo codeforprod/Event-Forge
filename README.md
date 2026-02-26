@@ -29,7 +29,7 @@ The Inbox-Outbox pattern ensures reliable message delivery in distributed system
 
 | Package | Description | PyPI |
 |---------|-------------|------|
-| `callairis-event-forge` | Complete Python implementation with SQLAlchemy & MongoDB support | [![PyPI](https://img.shields.io/pypi/v/callairis-event-forge.svg)](https://pypi.org/project/callairis-event-forge/) |
+| `event-forge` | Complete Python implementation with SQLAlchemy & MongoDB support | [![PyPI](https://img.shields.io/pypi/v/event-forge.svg)](https://pypi.org/project/event-forge/) |
 
 ## 🚀 Quick Start
 
@@ -245,27 +245,27 @@ export class OutboxPollingService implements OnModuleInit, OnModuleDestroy {
 
 ```bash
 # With PostgreSQL support
-pip install callairis-event-forge
+pip install event-forge
 
 # With RabbitMQ support
-pip install callairis-event-forge[rabbitmq]
+pip install event-forge[rabbitmq]
 
 # With MongoDB support
-pip install callairis-event-forge[mongodb]
+pip install event-forge[mongodb]
 
 # All extras
-pip install callairis-event-forge[rabbitmq,mongodb]
+pip install event-forge[rabbitmq,mongodb]
 ```
 
 #### 2. Setup with SQLAlchemy (PostgreSQL)
 
 ```python
-from callairis_event_forge import OutboxService, CreateOutboxMessageDto
-from callairis_event_forge.repositories.sqlalchemy import (
+from event_forge import OutboxService, CreateOutboxMessageDto
+from event_forge.repositories.sqlalchemy import (
     SQLAlchemyOutboxRepository,
     Base,
 )
-from callairis_event_forge.publishers.aio_pika import AioPikaPublisher
+from event_forge.publishers.aio_pika_publisher import AioPikaPublisher
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -328,8 +328,8 @@ async def create_user(email: str, name: str):
 #### 4. Handle Incoming Messages (Inbox)
 
 ```python
-from callairis_event_forge import InboxService, CreateInboxMessageDto
-from callairis_event_forge.repositories.sqlalchemy import SQLAlchemyInboxRepository
+from event_forge import InboxService, CreateInboxMessageDto
+from event_forge.repositories.sqlalchemy import SQLAlchemyInboxRepository
 
 # Setup inbox
 inbox_repository = SQLAlchemyInboxRepository(engine)

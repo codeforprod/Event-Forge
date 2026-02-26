@@ -93,3 +93,37 @@ jobs:
 
           echo ""
           echo "✅ All packages include dist/ files correctly"
+
+  verify-python:
+    name: Verify Python Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip build
+
+      - name: Verify Python package builds
+        working-directory: packages/python
+        run: |
+          python -m build
+          echo "✅ Python package builds successfully"
+
+      - name: Verify imports
+        working-directory: packages/python
+        run: |
+          pip install dist/*.whl
+          python -c "
+          from event_forge import OutboxService, InboxService, EventForgeAgentClient
+          from event_forge import OutboxConfig, InboxConfig
+          from event_forge import CreateOutboxMessageDto, CreateInboxMessageDto
+          from event_forge.events import SimpleEventEmitter, OutboxEvents, InboxEvents
+          print('✅ All Python imports verified')
+          "

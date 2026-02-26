@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Event-Forge is a database-agnostic library implementing the **Transactional Inbox-Outbox pattern** for reliable message delivery in distributed systems. Part of the AIRIS ecosystem.
+Event-Forge is a database-agnostic library implementing the **Transactional Inbox-Outbox pattern** for reliable message delivery in distributed systems.
 
-**Target consumers:** CallAiris-Backend (PostgreSQL/TypeORM), CallAiris-Agent (PostgreSQL/SQLAlchemy Python), Holocron (MongoDB/Mongoose)
+**Target consumers:** NestJS services (PostgreSQL/TypeORM), Python services (PostgreSQL/SQLAlchemy), MongoDB services (Mongoose)
 
 ## Build & Development Commands
 
@@ -33,7 +33,7 @@ packages/
 ├── adapter-mongoose/     # @prodforcode/event-forge-mongoose (MongoDB)
 ├── publisher-rabbitmq/   # @prodforcode/event-forge-rabbitmq-publisher
 ├── nestjs/               # @prodforcode/event-forge-nestjs (DynamicModule)
-└── python/               # callairis-event-forge (PyPI)
+└── python/               # event-forge (PyPI)
 ```
 
 ### Core Interfaces

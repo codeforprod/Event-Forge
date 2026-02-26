@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class EventForgeAgentClient:
     """Lightweight fire-and-forget facade for EventForge.
 
-    Designed for Python services (like CallAiris-Agent) that need to:
+    Designed for Python services that need to:
     1. Create outbox messages within a transaction
     2. Publish messages to RabbitMQ via the outbox pattern
     3. Manage the outbox polling lifecycle

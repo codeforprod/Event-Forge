@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "callairis-event-forge"
+name = "event-forge"
 version = "1.1.0"
 description = "Universal Inbox-Outbox Pattern Library for Python - reliable message delivery in distributed systems"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Event-Forge Team", email = "dev@event-forge.io"}
+    {name = "ProdForCode", email = "dev@prodforcode.com"}
 ]
 keywords = ["inbox", "outbox", "transactional", "message", "pattern", "postgresql", "mongodb", "rabbitmq", "sqlalchemy"]
 classifiers = [
@@ -53,7 +53,7 @@ Repository = "https://github.com/codeforprod/Event-Forge"
 Issues = "https://github.com/codeforprod/Event-Forge/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/callairis_event_forge"]
+packages = ["src/event_forge"]
 
 [tool.black]
 line-length = 100

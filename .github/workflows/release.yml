@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/event-forge-inbox-outbox
+      url: https://pypi.org/p/event-forge
     permissions:
       id-token: write
       contents: read

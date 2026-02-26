@@ -166,7 +166,7 @@ rm -rf package prodforcode-event-forge-core-*.tgz
 After fixing and republishing:
 - ✅ `npm install @prodforcode/event-forge-core` includes compiled JS
 - ✅ TypeScript can resolve module imports
-- ✅ CallAiris-Backend builds successfully
+- ✅ Consuming applications build successfully
 - ✅ All 67 tests pass
 - ✅ CI/CD pipeline succeeds
 
