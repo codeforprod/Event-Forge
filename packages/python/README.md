@@ -5,23 +5,25 @@ Python implementation of the Universal Inbox-Outbox Pattern for reliable message
 ## Installation
 
 ```bash
+# Core only (Pydantic models, interfaces, services)
 pip install event-forge
-```
 
-With RabbitMQ support:
-```bash
-pip install event-forge[rabbitmq]
-```
+# With PostgreSQL support (SQLAlchemy async)
+pip install event-forge[postgresql]
 
-With MongoDB support:
-```bash
+# With MongoDB support (Motor async)
 pip install event-forge[mongodb]
+
+# With RabbitMQ support (aio-pika)
+pip install event-forge[rabbitmq]
+
+# All extras
+pip install event-forge[all]
 ```
 
 ## Requirements
 
 - Python >=3.10
-- SQLAlchemy >= 2.0 (async support)
 - Pydantic >= 2.0
 
 ## Quick Start
@@ -134,6 +136,38 @@ await inbox.receive_message(dto)
 inbox.start_retry_polling()
 ```
 
+### MongoDB + Motor
+
+```python
+from event_forge import OutboxService, InboxService, OutboxConfig, InboxConfig
+from event_forge.repositories.motor import MotorOutboxRepository, MotorInboxRepository
+from event_forge.publishers.aio_pika_publisher import AioPikaPublisher
+from motor.motor_asyncio import AsyncIOMotorClient
+
+# Setup MongoDB
+client = AsyncIOMotorClient("mongodb://localhost:27017")
+
+# Outbox repository
+outbox_repo = MotorOutboxRepository(client, database="mydb")
+await outbox_repo.ensure_indexes()
+
+# Inbox repository
+inbox_repo = MotorInboxRepository(client["mydb"])
+await inbox_repo.ensure_indexes()
+
+# Create services
+outbox = OutboxService(
+    repository=outbox_repo,
+    publisher=AioPikaPublisher(url="amqp://localhost/", exchange_name="events"),
+    config=OutboxConfig(polling_interval=1.0),
+)
+
+inbox = InboxService(
+    repository=inbox_repo,
+    config=InboxConfig(enable_retry=True),
+)
+```
+
 ### RabbitMQ Consumer
 
 ```python
@@ -155,7 +189,7 @@ await consumer.start()
 Matches the TypeScript implementation with full wire format compatibility:
 
 - **Models**: Pydantic v2 models (type-safe DTOs)
-- **Repositories**: SQLAlchemy async for PostgreSQL (SELECT FOR UPDATE SKIP LOCKED)
+- **Repositories**: SQLAlchemy async for PostgreSQL, Motor async for MongoDB
 - **Services**: `OutboxService`, `InboxService` with exponential backoff and event emission
 - **Publishers**: `AioPikaPublisher` for RabbitMQ (connect_robust, auto-reconnect)
 - **Consumers**: `AioPikaConsumer` with inbox recording and deduplication
@@ -166,7 +200,8 @@ Matches the TypeScript implementation with full wire format compatibility:
 - **Transactional Guarantees** — Messages created in same transaction as business logic
 - **Automatic Retry** — Exponential backoff with jitter for failed publishes
 - **Duplicate Detection** — Inbox pattern prevents duplicate processing
-- **Async/Await** — Full async support with SQLAlchemy 2.0
+- **Database Agnostic** — PostgreSQL (SQLAlchemy) and MongoDB (Motor) adapters
+- **Async/Await** — Full async support with SQLAlchemy 2.0 and Motor
 - **Type Safety** — Pydantic v2 models for validation
 - **Wire Format Compatible** — camelCase JSON body, AMQP headers match Node.js publisher
 - **Auto-Reconnect** — aio-pika connect_robust for RabbitMQ resilience
