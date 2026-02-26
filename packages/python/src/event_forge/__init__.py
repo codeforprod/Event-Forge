@@ -1,5 +1,5 @@
 """Event-Forge Inbox-Outbox Pattern Library for Python."""
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Models
 from .models import (
