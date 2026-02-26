@@ -10,3 +10,4 @@ class InboxMessageStatus(str, Enum):
     PROCESSING = "processing"
     PROCESSED = "processed"
     FAILED = "failed"
+    PERMANENTLY_FAILED = "permanently_failed"
