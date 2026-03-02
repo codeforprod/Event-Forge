@@ -1223,14 +1223,55 @@
         "correct": "jest.useFakeTimers();\nservice.emit('event', id);\nawait jest.advanceTimersByTimeAsync(0); // Flushes microtasks"
       },
       "tags": ["jest", "fake-timers", "testing", "anti-pattern"]
+    },
+    {
+      "id": "w3c-traceparent-amqp-header",
+      "category": "best-practices",
+      "title": "Add W3C traceparent header to AMQP messages from metadata",
+      "problem": "Distributed traces break at service boundaries when events pass through RabbitMQ because trace context is not propagated in AMQP headers",
+      "solution": "Extract traceId and spanId from OutboxMessage.metadata and build W3C traceparent header (00-{traceId}-{spanId}-01) in all publisher implementations",
+      "implementation": {
+        "steps": [
+          "Add private buildTraceparentHeader(message) method to each publisher",
+          "Check message.metadata?.traceId exists and is a string",
+          "Use message.metadata?.spanId if string, otherwise default '0000000000000000'",
+          "Return { traceparent: `00-${traceId}-${spanId}-01` } or empty object",
+          "Spread result into AMQP headers alongside x-aggregate-type etc."
+        ],
+        "pattern": "buildTraceparentHeader returns Record<string, string> — empty if no trace context, populated if present. Uses object spread for clean merge with existing headers."
+      },
+      "tags": ["distributed-tracing", "w3c", "traceparent", "amqp", "rabbitmq", "observability"]
+    },
+    {
+      "id": "cross-stack-metadata-propagation",
+      "category": "best-practices",
+      "title": "Propagate metadata across inbox/outbox pipeline (TS + Python)",
+      "problem": "Adding a new field to inbox message requires coordinated changes across 13+ files in TypeScript and Python packages",
+      "solution": "Follow the interface-entity-schema-repository-decorator chain: interface first (core), then entity/schema (adapters), then repository record() (adapters), then decorator extraction (consumer), and mirror in Python models/repositories",
+      "implementation": {
+        "checklist": [
+          "1. Core interface (InboxMessage) — add optional field",
+          "2. Core DTO (CreateInboxMessageDto) — add optional field",
+          "3. TypeORM entity — add @Column with appropriate type (jsonb nullable for metadata)",
+          "4. Mongoose schema — add field with Schema.Types.Mixed",
+          "5. TypeORM repository record() — forward dto.field",
+          "6. Mongoose repository record() — forward in doc creation + toModel mapping",
+          "7. @InboxSubscribe decorator — extract from raw message body, pass to record()",
+          "8. TypeORM migration — ALTER TABLE ADD COLUMN",
+          "9. Python model — add Optional field to both DTO and model classes",
+          "10. Python repository — forward in record() and _to_model()"
+        ],
+        "key_insight": "When extracting from raw RabbitMQ message, cast to Record<string, unknown> and check typeof === 'object' to avoid forwarding primitives as metadata"
+      },
+      "tags": ["metadata", "inbox", "cross-stack", "typescript", "python", "migration"]
     }
   ],
   "metadata": {
-    "total_skills": 25,
-    "total_patterns": 8,
+    "total_skills": 27,
+    "total_patterns": 10,
     "total_anti_patterns": 12,
-    "last_updated": "2026-03-02T13:30:00Z",
+    "last_updated": "2026-03-02T23:30:00Z",
     "created_at": "2026-01-05T00:00:00Z",
-    "last_task": "Eliminate DB polling with event-driven architecture"
+    "last_task": "Add metadata to InboxMessage and traceparent to AMQP headers"
   }
 }
