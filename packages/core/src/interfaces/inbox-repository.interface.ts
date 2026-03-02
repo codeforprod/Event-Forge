@@ -54,13 +54,6 @@ export interface IInboxRepository {
   markFailed(id: string, error: string, permanent?: boolean, scheduledAt?: Date): Promise<void>;
 
   /**
-   * Find retryable messages (failed messages that haven't exceeded max retries)
-   * @param limit Maximum number of messages to fetch
-   * @returns Array of messages ready for retry
-   */
-  findRetryable(limit: number): Promise<InboxMessage[]>;
-
-  /**
    * Delete old processed messages
    * @param date Delete messages created before this date
    * @returns Number of deleted messages

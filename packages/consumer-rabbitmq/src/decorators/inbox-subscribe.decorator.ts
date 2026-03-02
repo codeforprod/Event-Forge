@@ -2,7 +2,6 @@ import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { ModuleRef } from '@nestjs/core';
 import {
   IInboxRepository,
-  InboxMessage,
   InboxService,
   InboxEvents,
   ProcessingError,
@@ -143,96 +142,14 @@ function calculateBackoff(
 }
 
 /**
- * Handle errors from the decorated handler with retry logic
- * Updates INBOX record status, error_message, and schedules retry if applicable
- */
-async function handleDecoratorError(
-  inboxRepository: IInboxRepository,
-  inboxService: InboxService | null,
-  message: InboxMessage,
-  error: unknown,
-  options: InboxSubscribeOptions,
-): Promise<void> {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const isPermanent = error instanceof ProcessingError;
-
-  // Use maxRetries from options if provided, otherwise use message default
-  const maxRetries = options.maxRetries ?? message.maxRetries;
-
-  // Check if we've exceeded max retries or error is permanent
-  if (message.retryCount >= maxRetries || isPermanent) {
-    await inboxRepository.markFailed(message.id, errorMessage, true);
-
-    // Emit event if InboxService is available
-    if (inboxService) {
-      inboxService.emit(InboxEvents.MESSAGE_FAILED, {
-        message,
-        error: errorMessage,
-        permanent: true,
-      });
-    }
-
-    console.error(
-      `[InboxSubscribe] Message ${message.messageId} permanently failed after ${message.retryCount} retries: ${errorMessage}`,
-    );
-    return;
-  }
-
-  // Calculate exponential backoff for retry
-  const enableRetry = options.enableRetry ?? true;
-  let scheduledAt: Date | undefined;
-
-  if (enableRetry) {
-    const backoffDelay = calculateBackoff(message.retryCount, {
-      backoffBaseSeconds: options.backoffBaseSeconds,
-      maxBackoffSeconds: options.maxBackoffSeconds,
-    });
-    scheduledAt = new Date(Date.now() + backoffDelay);
-  }
-
-  // Mark as failed with optional scheduled retry
-  await inboxRepository.markFailed(message.id, errorMessage, false, scheduledAt);
-
-  // Emit event if InboxService is available
-  if (inboxService) {
-    inboxService.emit(InboxEvents.MESSAGE_FAILED, {
-      message,
-      error: errorMessage,
-      permanent: false,
-      scheduledAt,
-    });
-  }
-
-  console.error(
-    `[InboxSubscribe] Message ${message.messageId} failed (retry ${message.retryCount + 1}/${maxRetries}): ${errorMessage}`,
-    scheduledAt ? `Scheduled retry at ${scheduledAt.toISOString()}` : 'No retry scheduled',
-  );
-}
-
-/**
  * Decorator that combines RabbitMQ subscription with automatic INBOX recording
+ * and inline retry logic.
  *
  * This decorator wraps @RabbitSubscribe from @golevelup/nestjs-rabbitmq
  * and adds automatic inbox message recording for idempotency.
  *
- * The key difference from the previous implementation is that the wrapping
- * happens INSIDE the decorator at the prototype level (descriptor.value)
- * BEFORE applying @RabbitSubscribe. This ensures that @golevelup/nestjs-rabbitmq
- * discovers and registers the WRAPPED handler, not the original one.
- *
- * @example
- * ```typescript
- * @InboxSubscribe({
- *   exchange: 'events',
- *   routingKey: 'user.created',
- *   source: 'user-service',
- * })
- * async handleUserCreated(message: RabbitMQMessage) {
- *   // Message is automatically recorded in inbox before this handler is called
- *   // Duplicate messages are automatically filtered out
- *   console.log('User created:', message);
- * }
- * ```
+ * Retries are handled inline (sleep + retry loop) — no DB polling needed.
+ * The message is always ACKed (never re-thrown to AMQP).
  *
  * @param options - Configuration for the subscription and inbox behavior
  */
@@ -271,7 +188,7 @@ export function InboxSubscribe(
 
       const message = args[0] as RabbitMQMessage;
 
-      // Try to get InboxService for retry integration
+      // Try to get InboxService for event emission
       let inboxService: InboxService | null = null;
       try {
         inboxService = moduleRef.get<InboxService>(INBOX_SERVICE, { strict: false });
@@ -303,29 +220,78 @@ export function InboxSubscribe(
       }
 
       const inboxMessage = recordResult.message;
+      const enableRetry = options.enableRetry ?? true;
+      const maxRetries = options.maxRetries ?? inboxMessage.maxRetries;
 
+      // Inline retry loop — wrapped in try/catch to enforce "always ACK" guarantee.
+      // If any repository call (markProcessing, markFailed, etc.) throws unexpectedly
+      // (e.g., DB connection lost), we log and return (ACK) to prevent infinite redelivery.
       try {
-        // Mark as processing
-        await inboxRepository.markProcessing(inboxMessage.id);
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            await inboxRepository.markProcessing(inboxMessage.id);
 
-        // Invoke original handler for new messages
-        const result = await originalMethod.apply(this, args);
+            const result = await originalMethod.apply(this, args);
 
-        // Mark as processed on success
-        await inboxRepository.markProcessed(inboxMessage.id);
+            await inboxRepository.markProcessed(inboxMessage.id);
+            return result; // SUCCESS → consumer ACKs
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const isPermanent = error instanceof ProcessingError;
 
-        return result;
-      } catch (error) {
-        // Handle error with retry logic
-        await handleDecoratorError(
-          inboxRepository,
-          inboxService,
-          inboxMessage,
-          error,
-          options,
+            if (isPermanent || !enableRetry || attempt >= maxRetries) {
+              // Permanent failure or max retries reached
+              await inboxRepository.markFailed(inboxMessage.id, errorMsg, true);
+
+              if (inboxService) {
+                inboxService.emit(InboxEvents.MESSAGE_FAILED, {
+                  message: inboxMessage,
+                  error: errorMsg,
+                  permanent: true,
+                });
+              }
+
+              console.error(
+                `[InboxSubscribe] Message ${messageId} permanently failed after ${attempt} retries: ${errorMsg}`,
+              );
+              return; // ACK — all retries handled, no throw
+            }
+
+            // Calculate backoff and schedule retry
+            const backoffDelay = calculateBackoff(attempt, {
+              backoffBaseSeconds: options.backoffBaseSeconds,
+              maxBackoffSeconds: options.maxBackoffSeconds,
+            });
+
+            await inboxRepository.markFailed(inboxMessage.id, errorMsg, false);
+
+            if (inboxService) {
+              inboxService.emit(InboxEvents.MESSAGE_FAILED, {
+                message: inboxMessage,
+                error: errorMsg,
+                permanent: false,
+              });
+            }
+
+            console.error(
+              `[InboxSubscribe] Message ${messageId} failed (retry ${attempt + 1}/${maxRetries}): ${errorMsg}. Retrying in ${Math.round(backoffDelay / 1000)}s`,
+            );
+
+            // Wait for backoff delay before retrying
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
+          }
+        }
+      } catch (infrastructureError) {
+        // Catch-all for infrastructure errors (DB down, network issues).
+        // Log and ACK to prevent infinite redelivery of poison messages.
+        console.error(
+          `[InboxSubscribe] Infrastructure error processing message ${messageId}: ${
+            infrastructureError instanceof Error ? infrastructureError.message : String(infrastructureError)
+          }. ACKing to prevent redelivery storm.`,
         );
-        throw error;
       }
+
+      return undefined;
     };
 
     // Apply RabbitSubscribe to the WRAPPED method

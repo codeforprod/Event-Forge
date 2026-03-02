@@ -161,35 +161,6 @@ class MotorInboxRepository(IInboxRepository):
             },
         )
 
-    async def find_retryable(self, limit: int) -> list[InboxMessage]:
-        """Find failed messages eligible for retry using atomic findOneAndUpdate.
-
-        Uses $expr to compare retryCount < maxRetries within the same document.
-        """
-        now = datetime.now(timezone.utc)
-        messages: list[InboxMessage] = []
-
-        for _ in range(limit):
-            doc = await self._collection.find_one_and_update(
-                {
-                    "status": InboxMessageStatus.FAILED.value,
-                    "$expr": {"$lt": ["$retry_count", "$max_retries"]},
-                    "$or": [{"scheduled_at": None}, {"scheduled_at": {"$lte": now}}],
-                },
-                {
-                    "$set": {"status": InboxMessageStatus.PROCESSING.value},
-                },
-                sort=[("created_at", 1)],
-                return_document=True,
-            )
-
-            if doc is None:
-                break
-
-            messages.append(self._to_model(doc))
-
-        return messages
-
     async def delete_older_than(self, date: datetime) -> int:
         result = await self._collection.delete_many({
             "status": InboxMessageStatus.PROCESSED.value,

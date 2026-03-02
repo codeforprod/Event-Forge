@@ -135,8 +135,8 @@ class AioPikaConsumer:
             await message.ack()
 
         except RuntimeError:
-            # InboxService raises RuntimeError for retryable failures (already recorded in DB)
-            # Ack because retry is handled by inbox retry polling, not AMQP redelivery
+            # InboxService raises RuntimeError for failures (already recorded in DB)
+            # Ack because retry is handled inline, not via AMQP redelivery
             await message.ack()
 
         except Exception as e:

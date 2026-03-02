@@ -17,7 +17,6 @@ describe('InboxService', () => {
       markProcessing: jest.fn(),
       markProcessed: jest.fn(),
       markFailed: jest.fn(),
-      findRetryable: jest.fn(),
       deleteOlderThan: jest.fn(),
     } as jest.Mocked<IInboxRepository>;
 

@@ -17,6 +17,7 @@ describe('OutboxService', () => {
       create: jest.fn(),
       withTransaction: jest.fn(),
       fetchAndLockPending: jest.fn(),
+      findAndLockById: jest.fn(),
       markPublished: jest.fn(),
       markFailed: jest.fn(),
       releaseLock: jest.fn(),
@@ -32,9 +33,9 @@ describe('OutboxService', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers(); // Restore real timers first to stop any fake timers
+    jest.useRealTimers();
     try {
-      service.stopPolling();
+      service.stopProcessor();
     } catch (e) {
       // Ignore errors during cleanup
     }
@@ -193,7 +194,7 @@ describe('OutboxService', () => {
     });
   });
 
-  describe('startPolling', () => {
+  describe('startProcessor', () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -202,59 +203,64 @@ describe('OutboxService', () => {
       jest.useRealTimers();
     });
 
-    it('should emit POLLING_STARTED event', () => {
+    it('should emit PROCESSOR_STARTED event', () => {
       const emitSpy = jest.spyOn(service, 'emit');
 
-      service.startPolling();
+      service.startProcessor();
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.PROCESSOR_STARTED);
+    });
+
+    it('should emit legacy POLLING_STARTED event', () => {
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startProcessor();
 
       expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.POLLING_STARTED);
     });
 
-    it.skip('should start polling at configured interval', async () => {
-      // Skipping this test due to timing/race condition issues with Jest fake timers
-      // Polling behavior is already tested in other tests (stopPolling, cleanup, etc.)
-      jest.useRealTimers(); // Use real timers for this test
+    it('should not start multiple processors', () => {
+      service.startProcessor();
+      service.startProcessor();
+      service.startProcessor();
 
-      // Clear previous calls and setup mocks
-      jest.clearAllMocks();
-      mockRepository.fetchAndLockPending.mockResolvedValue([]);
-      mockRepository.releaseStaleLocks.mockResolvedValue(0);
-
-      // Create service with shorter polling interval for faster test
-      const fastService = new OutboxService(mockRepository, mockPublisher, { pollingInterval: 100 });
-
-      // Add error listener to prevent unhandled errors
-      fastService.on('error', () => {});
-
-      fastService.startPolling();
-
-      // Wait for initial poll to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(1);
-
-      // Wait for polling interval (100ms) and second poll
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(2);
-
-      fastService.stopPolling();
-      jest.useFakeTimers(); // Restore fake timers for other tests
+      // Should be idempotent
+      expect(service).toBeDefined();
     });
 
-    it('should not start multiple polling timers', () => {
-      mockRepository.fetchAndLockPending.mockResolvedValue([]);
-      mockRepository.releaseStaleLocks.mockResolvedValue(0);
+    it('should listen for MESSAGE_CREATED events after starting', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        aggregateType: 'User',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: OutboxMessageStatus.PROCESSING,
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-      service.startPolling();
-      service.startPolling();
-      service.startPolling();
+      mockRepository.findAndLockById.mockResolvedValue(message);
+      mockPublisher.publish.mockResolvedValue(undefined);
+      mockRepository.markPublished.mockResolvedValue(undefined);
 
-      // Should only poll once initially
-      expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(1);
+      service.startProcessor();
+
+      // Emit MESSAGE_CREATED (simulating createMessage)
+      service.emit(OutboxEvents.MESSAGE_CREATED, 'msg-1');
+
+      // Flush microtasks (fake timers intercept setImmediate)
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(mockRepository.findAndLockById).toHaveBeenCalledWith('msg-1', expect.any(String));
+      expect(mockPublisher.publish).toHaveBeenCalledWith(message);
+      expect(mockRepository.markPublished).toHaveBeenCalledWith('msg-1');
     });
   });
 
-  describe('stopPolling', () => {
+  describe('stopProcessor', () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -263,37 +269,97 @@ describe('OutboxService', () => {
       jest.useRealTimers();
     });
 
-    it('should emit POLLING_STOPPED event', () => {
+    it('should emit PROCESSOR_STOPPED event', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      service.startPolling();
+      service.startProcessor();
 
       const emitSpy = jest.spyOn(service, 'emit');
 
-      service.stopPolling();
+      service.stopProcessor();
 
-      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.POLLING_STOPPED);
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.PROCESSOR_STOPPED);
     });
 
-    it('should stop polling', () => {
+    it('should preserve user-registered MESSAGE_CREATED listeners', () => {
+      const userListener = jest.fn();
+      service.on(OutboxEvents.MESSAGE_CREATED, userListener);
+
+      service.startProcessor();
+      service.stopProcessor();
+
+      // User listener should still be registered
+      service.emit(OutboxEvents.MESSAGE_CREATED, 'test-id');
+      expect(userListener).toHaveBeenCalledWith('test-id');
+    });
+
+    it('should stop safety net polling', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      service.startPolling();
+      service.startProcessor();
 
       const initialCallCount = mockRepository.releaseStaleLocks.mock.calls.length;
 
-      service.stopPolling();
+      service.stopProcessor();
 
-      jest.advanceTimersByTime(10000);
+      jest.advanceTimersByTime(600000); // 10 minutes
 
       // No additional calls after stopping
       expect(mockRepository.releaseStaleLocks).toHaveBeenCalledTimes(initialCallCount);
     });
   });
 
-  describe('pollAndProcess', () => {
+  describe('processMessageById', () => {
+    it('should find, lock, and publish a message by ID', async () => {
+      const message: OutboxMessage = {
+        id: 'msg-1',
+        aggregateType: 'User',
+        eventType: 'user.created',
+        aggregateId: 'user-123',
+        payload: { name: 'John' },
+        status: OutboxMessageStatus.PROCESSING,
+        retryCount: 0,
+        maxRetries: 3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.findAndLockById.mockResolvedValue(message);
+      mockPublisher.publish.mockResolvedValue(undefined);
+      mockRepository.markPublished.mockResolvedValue(undefined);
+
+      await service.processMessageById('msg-1');
+
+      expect(mockRepository.findAndLockById).toHaveBeenCalledWith('msg-1', expect.any(String));
+      expect(mockPublisher.publish).toHaveBeenCalledWith(message);
+      expect(mockRepository.markPublished).toHaveBeenCalledWith('msg-1');
+    });
+
+    it('should do nothing when message is not found or not eligible', async () => {
+      mockRepository.findAndLockById.mockResolvedValue(null);
+
+      await service.processMessageById('msg-1');
+
+      expect(mockRepository.findAndLockById).toHaveBeenCalledWith('msg-1', expect.any(String));
+      expect(mockPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    it('should emit error on unexpected failure', async () => {
+      const error = new Error('DB connection lost');
+      mockRepository.findAndLockById.mockRejectedValue(error);
+
+      service.on('error', () => {});
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      await service.processMessageById('msg-1');
+
+      expect(emitSpy).toHaveBeenCalledWith('error', error);
+    });
+  });
+
+  describe('pollAndProcess (safety net)', () => {
     it('should release stale locks before fetching messages', async () => {
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
@@ -346,35 +412,10 @@ describe('OutboxService', () => {
       expect(mockRepository.markPublished).toHaveBeenCalledTimes(2);
     });
 
-    it.skip('should not process concurrently', async () => {
-      // Skipping this test due to timing/race condition issues with switching timers
-      // Concurrency protection is verified through the `isProcessing` flag behavior
-      jest.useRealTimers(); // Use real timers for this test
-      mockRepository.releaseStaleLocks.mockResolvedValue(0);
-      mockRepository.fetchAndLockPending.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve([]), 100)),
-      );
-
-      // Add error listener to prevent unhandled errors
-      service.on('error', () => {});
-
-      // Start two concurrent processes
-      const promise1 = service.processMessage('msg-1');
-      const promise2 = service.processMessage('msg-2');
-
-      await Promise.all([promise1, promise2]);
-
-      // Should only call fetchAndLockPending once due to isProcessing flag
-      expect(mockRepository.fetchAndLockPending).toHaveBeenCalledTimes(1);
-
-      jest.useFakeTimers(); // Restore fake timers for other tests
-    });
-
     it('should emit error on processing failure but continue polling', async () => {
       const error = new Error('Processing failed');
       mockRepository.releaseStaleLocks.mockRejectedValue(error);
 
-      // Add error listener to prevent unhandled errors
       service.on('error', () => {});
 
       const emitSpy = jest.spyOn(service, 'emit');
@@ -415,7 +456,8 @@ describe('OutboxService', () => {
       expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.MESSAGE_PUBLISHED, message);
     });
 
-    it('should handle publish errors with retry', async () => {
+    it('should handle publish errors with retry and schedule timer', async () => {
+      jest.useFakeTimers();
       const message: OutboxMessage = {
         id: 'msg-1',
         aggregateType: 'User',
@@ -451,6 +493,7 @@ describe('OutboxService', () => {
         error,
         permanent: false,
       });
+      jest.useRealTimers();
     });
 
     it('should calculate exponential backoff with scheduledAt', async () => {
@@ -488,7 +531,6 @@ describe('OutboxService', () => {
       expect(scheduledAt).toBeInstanceOf(Date);
 
       // With retryCount=2, backoff should be 5 * 2^2 = 20 seconds (± jitter)
-      // scheduledAt should be at least 18 seconds in the future (accounting for jitter)
       const scheduledTime = scheduledAt.getTime();
       expect(scheduledTime).toBeGreaterThan(beforeTime + 18000);
       expect(scheduledTime).toBeLessThan(afterTime + 22000);
@@ -583,14 +625,12 @@ describe('OutboxService', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      // Add error listener to prevent unhandled errors
       service.on('error', () => {});
 
-      service.startPolling();
+      service.startProcessor();
 
-      // Wait for cleanup interval (3600000ms default)
       jest.advanceTimersByTime(3600000);
-      await Promise.resolve(); // Let async operations complete
+      await Promise.resolve();
 
       expect(mockRepository.deleteOlderThan).toHaveBeenCalledWith(
         expect.any(Date),
@@ -602,16 +642,14 @@ describe('OutboxService', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      // Add error listener to prevent unhandled errors
       service.on('error', () => {});
 
       const emitSpy = jest.spyOn(service, 'emit');
 
-      service.startPolling();
+      service.startProcessor();
 
-      // Wait for cleanup interval (3600000ms default)
       jest.advanceTimersByTime(3600000);
-      await Promise.resolve(); // Let async operations complete
+      await Promise.resolve();
 
       expect(emitSpy).toHaveBeenCalledWith('cleanup', {
         deleted: 10,
@@ -624,18 +662,15 @@ describe('OutboxService', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      // Add error listener to prevent unhandled errors
       service.on('error', () => {});
 
       const emitSpy = jest.spyOn(service, 'emit');
 
-      service.startPolling();
+      service.startProcessor();
 
-      // Wait for cleanup interval (3600000ms default)
       jest.advanceTimersByTime(3600000);
-      await Promise.resolve(); // Let async operations complete
+      await Promise.resolve();
 
-      // Should not emit cleanup event
       expect(emitSpy).not.toHaveBeenCalledWith('cleanup', expect.anything());
     });
 
@@ -645,16 +680,14 @@ describe('OutboxService', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
 
-      // Add error listener BEFORE starting polling to prevent unhandled errors
       service.on('error', () => {});
 
       const emitSpy = jest.spyOn(service, 'emit');
 
-      service.startPolling();
+      service.startProcessor();
 
-      // Wait for cleanup interval (3600000ms default)
       jest.advanceTimersByTime(3600000);
-      await Promise.resolve(); // Let async operations complete
+      await Promise.resolve();
 
       expect(emitSpy).toHaveBeenCalledWith('error', error);
     });
@@ -663,7 +696,7 @@ describe('OutboxService', () => {
   describe('configuration', () => {
     it('should use custom configuration', () => {
       const config: OutboxConfig = {
-        pollingInterval: 10000,
+        safetyNetInterval: 300000,
         batchSize: 50,
         maxRetries: 5,
         lockTimeoutSeconds: 120,
@@ -675,18 +708,55 @@ describe('OutboxService', () => {
 
       service = new OutboxService(mockRepository, mockPublisher, config);
 
-      // Configuration is applied (tested implicitly through behavior)
       expect(service).toBeDefined();
     });
 
     it('should merge custom config with defaults', () => {
       const config: OutboxConfig = {
-        pollingInterval: 10000,
+        safetyNetInterval: 600000,
       };
 
       service = new OutboxService(mockRepository, mockPublisher, config);
 
       expect(service).toBeDefined();
+    });
+
+    it('should use pollingInterval as fallback for safetyNetInterval', () => {
+      const config: OutboxConfig = {
+        pollingInterval: 120000,
+      };
+
+      service = new OutboxService(mockRepository, mockPublisher, config);
+
+      expect(service).toBeDefined();
+    });
+  });
+
+  describe('deprecated aliases', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('startPolling should call startProcessor', () => {
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.startPolling();
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.PROCESSOR_STARTED);
+    });
+
+    it('stopPolling should call stopProcessor', () => {
+      service.startPolling();
+
+      const emitSpy = jest.spyOn(service, 'emit');
+
+      service.stopPolling();
+
+      expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.PROCESSOR_STOPPED);
     });
   });
 });

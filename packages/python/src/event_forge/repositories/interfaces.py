@@ -24,6 +24,13 @@ class IOutboxRepository(ABC):
         pass
 
     @abstractmethod
+    async def find_and_lock_by_id(self, message_id: str, locker_id: str) -> OutboxMessage | None:
+        """Find a specific message by ID and lock it for processing.
+        Used for event-driven processing (immediate publish on create).
+        """
+        pass
+
+    @abstractmethod
     async def mark_published(self, message_id: str) -> None:
         pass
 
@@ -81,10 +88,6 @@ class IInboxRepository(ABC):
         permanent: bool = False,
         scheduled_at: datetime | None = None,
     ) -> None:
-        pass
-
-    @abstractmethod
-    async def find_retryable(self, limit: int) -> list[InboxMessage]:
         pass
 
     @abstractmethod

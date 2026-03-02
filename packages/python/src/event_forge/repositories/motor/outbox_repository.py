@@ -119,6 +119,36 @@ class MotorOutboxRepository(IOutboxRepository):
 
         return messages
 
+    async def find_and_lock_by_id(self, message_id: str, locker_id: str) -> OutboxMessage | None:
+        """Find a specific message by ID and lock it for processing."""
+        now = datetime.now(timezone.utc)
+        lock_timeout = now - timedelta(minutes=5)
+
+        doc = await self._collection.find_one_and_update(
+            {
+                "_id": ObjectId(message_id),
+                "status": {"$in": [
+                    OutboxMessageStatus.PENDING.value,
+                    OutboxMessageStatus.FAILED.value,
+                ]},
+                "$and": [
+                    {"$or": [{"scheduled_at": None}, {"scheduled_at": {"$lte": now}}]},
+                    {"$or": [{"locked_at": None}, {"locked_at": {"$lt": lock_timeout}}]},
+                ],
+            },
+            {
+                "$set": {
+                    "status": OutboxMessageStatus.PROCESSING.value,
+                    "locked_by": locker_id,
+                    "locked_at": now,
+                    "updated_at": now,
+                },
+            },
+            return_document=True,
+        )
+
+        return self._to_model(doc) if doc else None
+
     async def mark_published(self, message_id: str) -> None:
         now = datetime.now(timezone.utc)
         await self._collection.update_one(

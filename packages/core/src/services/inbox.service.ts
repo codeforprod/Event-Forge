@@ -22,20 +22,17 @@ export enum InboxEvents {
   MESSAGE_DUPLICATE = 'inbox:message:duplicate',
   MESSAGE_PROCESSED = 'inbox:message:processed',
   MESSAGE_FAILED = 'inbox:message:failed',
-  RETRY_POLLING_STARTED = 'inbox:retry:polling:started',
-  RETRY_POLLING_STOPPED = 'inbox:retry:polling:stopped',
 }
 
 /**
  * Inbox Service
  * Manages inbox message reception, deduplication, and processing
+ * Retries are handled inline by the consumer (no DB polling)
  */
 export class InboxService extends EventEmitter {
   private readonly config: Required<InboxConfig>;
   private readonly handlers = new Map<string, MessageHandler[]>();
   private cleanupTimer?: NodeJS.Timeout;
-  private retryPollingTimer?: NodeJS.Timeout;
-  private isProcessingRetries = false;
 
   constructor(
     private readonly repository: IInboxRepository,
@@ -186,67 +183,6 @@ export class InboxService extends EventEmitter {
 
     // Convert to milliseconds
     return Math.max(0, finalDelay * 1000);
-  }
-
-  /**
-   * Start retry polling for failed messages
-   * Only active if enableRetry is true
-   */
-  startRetryPolling(): void {
-    if (!this.config.enableRetry) {
-      return;
-    }
-
-    if (this.retryPollingTimer) {
-      return;
-    }
-
-    this.emit(InboxEvents.RETRY_POLLING_STARTED);
-    this.retryPollingTimer = setInterval(() => {
-      void this.pollAndRetry();
-    }, this.config.retryPollingInterval);
-
-    // Initial poll
-    void this.pollAndRetry();
-  }
-
-  /**
-   * Stop retry polling
-   */
-  stopRetryPolling(): void {
-    if (this.retryPollingTimer) {
-      clearInterval(this.retryPollingTimer);
-      this.retryPollingTimer = undefined;
-      this.emit(InboxEvents.RETRY_POLLING_STOPPED);
-    }
-  }
-
-  /**
-   * Poll for retryable messages and process them
-   */
-  private async pollAndRetry(): Promise<void> {
-    if (this.isProcessingRetries) {
-      return;
-    }
-
-    this.isProcessingRetries = true;
-
-    try {
-      // Fetch retryable messages
-      const messages = await this.repository.findRetryable(this.config.retryBatchSize);
-
-      if (!messages || messages.length === 0) {
-        return;
-      }
-
-      // Process each message - use allSettled to continue processing even if some fail
-      await Promise.allSettled(messages.map((message) => this.processMessage(message)));
-    } catch (error) {
-      // Log error but don't stop polling
-      this.emit('error', error);
-    } finally {
-      this.isProcessingRetries = false;
-    }
   }
 
   /**

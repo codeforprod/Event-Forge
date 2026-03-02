@@ -11,6 +11,9 @@ class OutboxEvents(str, Enum):
     MESSAGE_CREATED = "outbox:message:created"
     MESSAGE_PUBLISHED = "outbox:message:published"
     MESSAGE_FAILED = "outbox:message:failed"
+    PROCESSOR_STARTED = "outbox:processor:started"
+    PROCESSOR_STOPPED = "outbox:processor:stopped"
+    # Deprecated aliases
     POLLING_STARTED = "outbox:polling:started"
     POLLING_STOPPED = "outbox:polling:stopped"
 
@@ -20,8 +23,6 @@ class InboxEvents(str, Enum):
     MESSAGE_DUPLICATE = "inbox:message:duplicate"
     MESSAGE_PROCESSED = "inbox:message:processed"
     MESSAGE_FAILED = "inbox:message:failed"
-    RETRY_POLLING_STARTED = "inbox:retry:polling:started"
-    RETRY_POLLING_STOPPED = "inbox:retry:polling:stopped"
 
 
 EventListener = Callable[..., Any]

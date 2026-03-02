@@ -161,6 +161,32 @@ export class MongooseOutboxRepository implements IOutboxRepository {
     return result.deletedCount;
   }
 
+  async findAndLockById(id: string, lockerId: string): Promise<OutboxMessage | null> {
+    const now = new Date();
+    const lockTimeout = new Date(Date.now() - 5 * 60 * 1000);
+
+    const doc = await this.model.findOneAndUpdate(
+      {
+        _id: id,
+        status: { $in: [OutboxMessageStatus.PENDING, OutboxMessageStatus.FAILED] },
+        $and: [
+          { $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }] },
+          { $or: [{ lockedAt: null }, { lockedAt: { $lt: lockTimeout } }] },
+        ],
+      },
+      {
+        $set: {
+          status: OutboxMessageStatus.PROCESSING,
+          lockedBy: lockerId,
+          lockedAt: new Date(),
+        },
+      },
+      { new: true },
+    );
+
+    return doc ? this.toOutboxMessage(doc) : null;
+  }
+
   async withTransaction<T>(operation: (context: unknown) => Promise<T>): Promise<T> {
     const session = await this.connection.startSession();
     session.startTransaction();

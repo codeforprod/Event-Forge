@@ -15,14 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class OutboxService(SimpleEventEmitter):
-    """Outbox Service — manages message creation, polling, and publishing.
+    """Outbox Service — manages message creation, event-driven publishing, and safety-net polling.
 
-    Port of the Node.js OutboxService with:
-    - Exponential backoff with jitter
-    - Stale lock release
-    - Concurrency guard (isProcessing flag)
-    - Event emission matching Node.js events
-    - Cleanup timer for old messages
+    Event-driven architecture:
+    - MESSAGE_CREATED event triggers immediate processing via processMessageById
+    - Safety net poll runs every 5 minutes for crash recovery
+    - Retry timers schedule individual message retries via asyncio
     """
 
     def __init__(
@@ -35,9 +33,10 @@ class OutboxService(SimpleEventEmitter):
         self.repository = repository
         self.publisher = publisher
         self.config = config or OutboxConfig()
-        self._polling_task: Optional[asyncio.Task[None]] = None
+        self._safety_net_task: Optional[asyncio.Task[None]] = None
         self._cleanup_task: Optional[asyncio.Task[None]] = None
         self._is_processing = False
+        self._retry_tasks: dict[str, asyncio.Task[None]] = {}
 
     async def create_message(
         self,
@@ -56,45 +55,90 @@ class OutboxService(SimpleEventEmitter):
         """Execute operation within a transaction."""
         return await self.repository.with_transaction(operation)
 
-    def start_polling(self) -> None:
-        """Start polling for pending messages."""
-        if self._polling_task is not None:
+    def start_processor(self) -> None:
+        """Start the event-driven processor.
+
+        - Listens for MESSAGE_CREATED events for immediate publish
+        - Runs a low-frequency safety net poll for crash recovery
+        """
+        if self._safety_net_task is not None:
             return
 
-        self.emit(OutboxEvents.POLLING_STARTED)
-        self._polling_task = asyncio.create_task(self._poll_loop())
+        # Event-driven: immediate publish on create
+        self.on(OutboxEvents.MESSAGE_CREATED, self._on_message_created)
+
+        # Safety net: low-frequency poll for crash recovery
+        interval = self.config.safety_net_interval or self.config.polling_interval
+        self._safety_net_task = asyncio.create_task(self._safety_net_loop(interval))
 
         # Start cleanup timer
         self._start_cleanup()
 
-        # Initial poll
-        asyncio.create_task(self._poll_and_process())
+        self.emit(OutboxEvents.PROCESSOR_STARTED)
+        self.emit(OutboxEvents.POLLING_STARTED)
 
-    def stop_polling(self) -> None:
-        """Stop polling."""
-        if self._polling_task is not None:
-            self._polling_task.cancel()
-            self._polling_task = None
-            self.emit(OutboxEvents.POLLING_STOPPED)
+    def stop_processor(self) -> None:
+        """Stop the processor."""
+        if self._safety_net_task is not None:
+            self._safety_net_task.cancel()
+            self._safety_net_task = None
 
         if self._cleanup_task is not None:
             self._cleanup_task.cancel()
             self._cleanup_task = None
 
+        # Cancel all retry tasks
+        for task in self._retry_tasks.values():
+            task.cancel()
+        self._retry_tasks.clear()
+
+        # Remove MESSAGE_CREATED listener
+        self.off(OutboxEvents.MESSAGE_CREATED, self._on_message_created)
+
+        self.emit(OutboxEvents.PROCESSOR_STOPPED)
+        self.emit(OutboxEvents.POLLING_STOPPED)
+
+    def start_polling(self) -> None:
+        """Start polling for pending messages. Deprecated: use start_processor()."""
+        self.start_processor()
+
+    def stop_polling(self) -> None:
+        """Stop polling. Deprecated: use stop_processor()."""
+        self.stop_processor()
+
+    async def _on_message_created(self, message_id: str) -> None:
+        """Handle MESSAGE_CREATED event — process immediately."""
+        await self._process_message_by_id(message_id)
+
+    async def _process_message_by_id(self, message_id: str) -> None:
+        """Process a specific message by ID (event-driven path)."""
+        try:
+            message = await self.repository.find_and_lock_by_id(
+                message_id, self.config.worker_id
+            )
+            if not message:
+                return
+            await self._publish_message(message)
+        except Exception as e:
+            logger.error(f"Error processing message {message_id}: {e}", exc_info=True)
+            self.emit("error", e)
+
     async def process_message(self, _message_id: str) -> None:
-        """Process a specific message immediately (called via event)."""
+        """Process a specific message immediately (called via event).
+        Deprecated: use _process_message_by_id() instead.
+        """
         await self._poll_and_process()
 
-    async def _poll_loop(self) -> None:
-        """Polling loop — runs until cancelled."""
+    async def _safety_net_loop(self, interval: float) -> None:
+        """Safety net polling loop — runs until cancelled."""
         while True:
             try:
-                await asyncio.sleep(self.config.polling_interval)
+                await asyncio.sleep(interval)
                 await self._poll_and_process()
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logger.error(f"Error in outbox polling loop: {e}", exc_info=True)
+                logger.error(f"Error in outbox safety net loop: {e}", exc_info=True)
                 self.emit("error", e)
 
     async def _poll_and_process(self) -> None:
@@ -158,6 +202,15 @@ class OutboxService(SimpleEventEmitter):
         self.emit(OutboxEvents.MESSAGE_FAILED, {
             "message": message, "error": error, "permanent": False,
         })
+
+        # Schedule retry via asyncio task
+        async def _delayed_retry() -> None:
+            await asyncio.sleep(backoff_delay / 1000)
+            self._retry_tasks.pop(message.id, None)
+            await self._process_message_by_id(message.id)
+
+        task = asyncio.create_task(_delayed_retry())
+        self._retry_tasks[message.id] = task
 
     def _calculate_backoff(self, retry_count: int) -> float:
         """Calculate exponential backoff delay in milliseconds.
