@@ -201,12 +201,19 @@ export function InboxSubscribe(
       const source = extractSource(options);
       const eventType = extractEventType(message, options);
 
+      // Extract metadata from message body (e.g., trace context)
+      const messageRecord = message as Record<string, unknown>;
+      const metadata = (messageRecord.metadata && typeof messageRecord.metadata === 'object')
+        ? messageRecord.metadata as Record<string, unknown>
+        : undefined;
+
       // Record message in inbox with deduplication
       const recordResult = await inboxRepository.record({
         messageId,
         source,
         eventType,
         payload: message,
+        metadata,
       });
 
       // Skip handler execution for duplicate messages

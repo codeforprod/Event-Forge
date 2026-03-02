@@ -26,6 +26,7 @@ export class GolevelupPublisher implements IMessagePublisher {
         'x-aggregate-type': message.aggregateType,
         'x-aggregate-id': message.aggregateId,
         'x-event-type': message.eventType,
+        ...this.buildTraceparentHeader(message),
       },
     };
 
@@ -43,6 +44,21 @@ export class GolevelupPublisher implements IMessagePublisher {
       },
       rabbitMQOptions,
     );
+  }
+
+  /**
+   * Build W3C traceparent header from message metadata
+   * Format: 00-{traceId}-{spanId}-01
+   */
+  private buildTraceparentHeader(message: OutboxMessage): Record<string, string> {
+    const traceId = message.metadata?.traceId;
+    if (!traceId || typeof traceId !== 'string') {
+      return {};
+    }
+    const spanId = typeof message.metadata?.spanId === 'string'
+      ? message.metadata.spanId
+      : '0000000000000000';
+    return { traceparent: `00-${traceId}-${spanId}-01` };
   }
 
   /**
