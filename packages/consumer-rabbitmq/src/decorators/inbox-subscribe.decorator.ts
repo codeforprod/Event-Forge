@@ -223,60 +223,72 @@ export function InboxSubscribe(
       const enableRetry = options.enableRetry ?? true;
       const maxRetries = options.maxRetries ?? inboxMessage.maxRetries;
 
-      // Inline retry loop
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          await inboxRepository.markProcessing(inboxMessage.id);
+      // Inline retry loop — wrapped in try/catch to enforce "always ACK" guarantee.
+      // If any repository call (markProcessing, markFailed, etc.) throws unexpectedly
+      // (e.g., DB connection lost), we log and return (ACK) to prevent infinite redelivery.
+      try {
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            await inboxRepository.markProcessing(inboxMessage.id);
 
-          const result = await originalMethod.apply(this, args);
+            const result = await originalMethod.apply(this, args);
 
-          await inboxRepository.markProcessed(inboxMessage.id);
-          return result; // SUCCESS → consumer ACKs
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : String(error);
-          const isPermanent = error instanceof ProcessingError;
+            await inboxRepository.markProcessed(inboxMessage.id);
+            return result; // SUCCESS → consumer ACKs
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const isPermanent = error instanceof ProcessingError;
 
-          if (isPermanent || !enableRetry || attempt >= maxRetries) {
-            // Permanent failure or max retries reached
-            await inboxRepository.markFailed(inboxMessage.id, errorMsg, true);
+            if (isPermanent || !enableRetry || attempt >= maxRetries) {
+              // Permanent failure or max retries reached
+              await inboxRepository.markFailed(inboxMessage.id, errorMsg, true);
+
+              if (inboxService) {
+                inboxService.emit(InboxEvents.MESSAGE_FAILED, {
+                  message: inboxMessage,
+                  error: errorMsg,
+                  permanent: true,
+                });
+              }
+
+              console.error(
+                `[InboxSubscribe] Message ${messageId} permanently failed after ${attempt} retries: ${errorMsg}`,
+              );
+              return; // ACK — all retries handled, no throw
+            }
+
+            // Calculate backoff and schedule retry
+            const backoffDelay = calculateBackoff(attempt, {
+              backoffBaseSeconds: options.backoffBaseSeconds,
+              maxBackoffSeconds: options.maxBackoffSeconds,
+            });
+
+            await inboxRepository.markFailed(inboxMessage.id, errorMsg, false);
 
             if (inboxService) {
               inboxService.emit(InboxEvents.MESSAGE_FAILED, {
                 message: inboxMessage,
                 error: errorMsg,
-                permanent: true,
+                permanent: false,
               });
             }
 
             console.error(
-              `[InboxSubscribe] Message ${messageId} permanently failed after ${attempt} retries: ${errorMsg}`,
+              `[InboxSubscribe] Message ${messageId} failed (retry ${attempt + 1}/${maxRetries}): ${errorMsg}. Retrying in ${Math.round(backoffDelay / 1000)}s`,
             );
-            return; // ACK — all retries handled, no throw
+
+            // Wait for backoff delay before retrying
+            await new Promise(resolve => setTimeout(resolve, backoffDelay));
           }
-
-          // Calculate backoff and schedule retry
-          const backoffDelay = calculateBackoff(attempt, {
-            backoffBaseSeconds: options.backoffBaseSeconds,
-            maxBackoffSeconds: options.maxBackoffSeconds,
-          });
-
-          await inboxRepository.markFailed(inboxMessage.id, errorMsg, false);
-
-          if (inboxService) {
-            inboxService.emit(InboxEvents.MESSAGE_FAILED, {
-              message: inboxMessage,
-              error: errorMsg,
-              permanent: false,
-            });
-          }
-
-          console.error(
-            `[InboxSubscribe] Message ${messageId} failed (retry ${attempt + 1}/${maxRetries}): ${errorMsg}. Retrying in ${Math.round(backoffDelay / 1000)}s`,
-          );
-
-          // Wait for backoff delay before retrying
-          await new Promise(resolve => setTimeout(resolve, backoffDelay));
         }
+      } catch (infrastructureError) {
+        // Catch-all for infrastructure errors (DB down, network issues).
+        // Log and ACK to prevent infinite redelivery of poison messages.
+        console.error(
+          `[InboxSubscribe] Infrastructure error processing message ${messageId}: ${
+            infrastructureError instanceof Error ? infrastructureError.message : String(infrastructureError)
+          }. ACKing to prevent redelivery storm.`,
+        );
       }
 
       return undefined;

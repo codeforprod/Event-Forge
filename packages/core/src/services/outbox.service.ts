@@ -32,6 +32,7 @@ export class OutboxService extends EventEmitter {
   private cleanupTimer?: NodeJS.Timeout;
   private isProcessing = false;
   private retryTimers = new Map<string, NodeJS.Timeout>();
+  private messageCreatedHandler?: (id: string) => void;
 
   constructor(
     private readonly repository: IOutboxRepository,
@@ -88,9 +89,10 @@ export class OutboxService extends EventEmitter {
     }
 
     // Event-driven: immediate publish on create
-    this.on(OutboxEvents.MESSAGE_CREATED, (id: string) => {
+    this.messageCreatedHandler = (id: string) => {
       void this.processMessageById(id);
-    });
+    };
+    this.on(OutboxEvents.MESSAGE_CREATED, this.messageCreatedHandler);
 
     // Safety net: low-frequency poll for crash recovery
     this.safetyNetTimer = setInterval(() => {
@@ -123,8 +125,11 @@ export class OutboxService extends EventEmitter {
     }
     this.retryTimers.clear();
 
-    // Remove MESSAGE_CREATED listeners added by startProcessor
-    this.removeAllListeners(OutboxEvents.MESSAGE_CREATED);
+    // Remove only the internal MESSAGE_CREATED listener (preserve user listeners)
+    if (this.messageCreatedHandler) {
+      this.off(OutboxEvents.MESSAGE_CREATED, this.messageCreatedHandler);
+      this.messageCreatedHandler = undefined;
+    }
 
     this.emit(OutboxEvents.PROCESSOR_STOPPED);
     this.emit(OutboxEvents.POLLING_STOPPED);
@@ -241,6 +246,9 @@ export class OutboxService extends EventEmitter {
     this.emit(OutboxEvents.MESSAGE_FAILED, { message, error, permanent: false });
 
     // Schedule retry via setTimeout (event-driven retry)
+    const existingTimer = this.retryTimers.get(message.id);
+    if (existingTimer) clearTimeout(existingTimer);
+
     const timer = setTimeout(() => {
       this.retryTimers.delete(message.id);
       void this.processMessageById(message.id);

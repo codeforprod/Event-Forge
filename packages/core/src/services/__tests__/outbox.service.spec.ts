@@ -282,6 +282,18 @@ describe('OutboxService', () => {
       expect(emitSpy).toHaveBeenCalledWith(OutboxEvents.PROCESSOR_STOPPED);
     });
 
+    it('should preserve user-registered MESSAGE_CREATED listeners', () => {
+      const userListener = jest.fn();
+      service.on(OutboxEvents.MESSAGE_CREATED, userListener);
+
+      service.startProcessor();
+      service.stopProcessor();
+
+      // User listener should still be registered
+      service.emit(OutboxEvents.MESSAGE_CREATED, 'test-id');
+      expect(userListener).toHaveBeenCalledWith('test-id');
+    });
+
     it('should stop safety net polling', () => {
       mockRepository.fetchAndLockPending.mockResolvedValue([]);
       mockRepository.releaseStaleLocks.mockResolvedValue(0);
