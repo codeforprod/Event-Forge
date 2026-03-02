@@ -59,6 +59,15 @@ export interface IOutboxRepository {
   deleteOlderThan(date: Date): Promise<number>;
 
   /**
+   * Find a specific message by ID and lock it for processing
+   * Used for event-driven processing (immediate publish on create)
+   * @param id Message ID
+   * @param lockerId Unique identifier for this worker/process
+   * @returns Locked message or null if not found/eligible
+   */
+  findAndLockById(id: string, lockerId: string): Promise<OutboxMessage | null>;
+
+  /**
    * Execute an operation within a transaction
    * @param operation Function to execute with transaction context
    * @returns Result of the operation

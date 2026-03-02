@@ -2,8 +2,11 @@
  * Outbox Service Configuration
  */
 export interface OutboxConfig {
-  /** Polling interval in milliseconds (default: 1000) */
+  /** @deprecated Use safetyNetInterval instead. Safety net polling interval in milliseconds (default: 300000 = 5 min) */
   pollingInterval?: number;
+
+  /** Safety net polling interval in milliseconds for crash recovery (default: 300000 = 5 min) */
+  safetyNetInterval?: number;
 
   /** Batch size for fetching messages (default: 10) */
   batchSize?: number;
@@ -37,7 +40,8 @@ export interface OutboxConfig {
  * Default Outbox Configuration
  */
 export const DEFAULT_OUTBOX_CONFIG: Required<OutboxConfig> = {
-  pollingInterval: 1000,
+  pollingInterval: 300000,
+  safetyNetInterval: 300000,
   batchSize: 10,
   maxRetries: 3,
   lockTimeoutSeconds: 300,

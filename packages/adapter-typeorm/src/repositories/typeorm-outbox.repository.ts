@@ -145,6 +145,33 @@ export class TypeOrmOutboxRepository implements IOutboxRepository {
     return result.affected ?? 0;
   }
 
+  async findAndLockById(id: string, lockerId: string): Promise<OutboxMessage | null> {
+    return this.dataSource.transaction(async (manager) => {
+      const repo = manager.getRepository(OutboxMessageEntity);
+      const now = new Date();
+
+      const message = await repo
+        .createQueryBuilder('outbox')
+        .setLock('pessimistic_write')
+        .where('outbox.id = :id', { id })
+        .andWhere('outbox.status IN (:...statuses)', {
+          statuses: [OutboxMessageStatus.PENDING, OutboxMessageStatus.FAILED],
+        })
+        .andWhere('(outbox.scheduledAt IS NULL OR outbox.scheduledAt <= :now)', { now })
+        .getOne();
+
+      if (!message) return null;
+
+      await repo.update(id, {
+        status: OutboxMessageStatus.PROCESSING,
+        lockedBy: lockerId,
+        lockedAt: new Date(),
+      } as never);
+
+      return repo.findOneBy({ id });
+    });
+  }
+
   async withTransaction<T>(operation: (context: unknown) => Promise<T>): Promise<T> {
     return this.dataSource.transaction(async (entityManager) => {
       return operation(entityManager);

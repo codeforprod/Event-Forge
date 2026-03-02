@@ -1159,14 +1159,78 @@
         "Integration with external libraries fails silently"
       ],
       "tags": ["nestjs", "decorators", "prototype", "instance", "anti-pattern"]
+    },
+    {
+      "id": "event-driven-outbox-processing",
+      "category": "best-practices",
+      "title": "Event-driven outbox processing replaces aggressive DB polling",
+      "problem": "setInterval polling at 1s intervals creates 86,400 queries/day per instance, most returning empty results. Heavy DB load for minimal benefit.",
+      "solution": "Use EventEmitter MESSAGE_CREATED event for immediate processing + low-frequency safety net poll (5min) for crash recovery. Per-message retry timers via setTimeout/asyncio.Task replace batch retry scanning.",
+      "implementation": {
+        "steps": [
+          "Add findAndLockById(id, lockerId) to IOutboxRepository for single-message locking",
+          "In startProcessor(): listen for MESSAGE_CREATED event, start 5-min safety net setInterval",
+          "On MESSAGE_CREATED: processMessageById() calls findAndLockById then publish",
+          "On publish error: schedule retry via setTimeout/asyncio.Task stored in retryTimers map",
+          "stopProcessor(): clear all retry timers, remove event listeners, clear safety net interval",
+          "Keep startPolling/stopPolling as deprecated aliases for backward compatibility"
+        ],
+        "key_config": {
+          "safetyNetInterval": 300000,
+          "immediateProcessing": true
+        }
+      },
+      "benefits": [
+        "Reduces DB queries from 86,400/day to ~288/day (99.7% reduction)",
+        "Near-zero latency: message published immediately on creation",
+        "Safety net covers crash recovery without high-frequency polling",
+        "Per-message retry timers avoid batch scanning overhead"
+      ],
+      "tags": ["outbox", "event-driven", "performance", "polling", "pattern"]
+    },
+    {
+      "id": "inline-retry-consumer-pattern",
+      "category": "best-practices",
+      "title": "Inline retry loop in consumer decorator eliminates inbox retry polling",
+      "problem": "Inbox retry polling scanned DB for retryable messages on interval, but consumer already has the message in memory. Separate findRetryable() query is wasteful and complex.",
+      "solution": "Handle retries inline within the consumer decorator using a for loop with setTimeout backoff. Never re-throw to AMQP — always ACK after handling all retries.",
+      "implementation": {
+        "steps": [
+          "Remove findRetryable() from IInboxRepository interface",
+          "Remove startRetryPolling/stopRetryPolling from InboxService",
+          "In InboxSubscribe decorator: wrap handler in for(attempt=0; attempt<=maxRetries; attempt++) loop",
+          "On success: markProcessed + return (ACK)",
+          "On permanent error or max retries: markFailed(permanent=true) + return (ACK, no throw)",
+          "On transient error: markFailed(permanent=false) + await setTimeout(backoff) + retry"
+        ]
+      },
+      "benefits": [
+        "Zero additional DB queries for retries",
+        "Message stays in memory during retry loop",
+        "Consumer always ACKs — no AMQP redelivery complexity",
+        "Simpler architecture: no retry polling timer to manage"
+      ],
+      "tags": ["inbox", "retry", "consumer", "decorator", "pattern"]
+    },
+    {
+      "id": "fake-timers-setimmediate-pitfall",
+      "category": "anti-patterns",
+      "title": "setImmediate hangs under jest.useFakeTimers()",
+      "problem": "Test using await new Promise(r => setImmediate(r)) to flush async work times out when jest.useFakeTimers() is active, because fake timers intercept setImmediate.",
+      "solution": "Use await jest.advanceTimersByTimeAsync(0) instead of setImmediate to flush microtasks under fake timers.",
+      "example": {
+        "wrong": "jest.useFakeTimers();\nservice.emit('event', id);\nawait new Promise(r => setImmediate(r)); // HANGS",
+        "correct": "jest.useFakeTimers();\nservice.emit('event', id);\nawait jest.advanceTimersByTimeAsync(0); // Flushes microtasks"
+      },
+      "tags": ["jest", "fake-timers", "testing", "anti-pattern"]
     }
   ],
   "metadata": {
-    "total_skills": 22,
-    "total_patterns": 6,
-    "total_anti_patterns": 11,
-    "last_updated": "2026-01-13T16:45:00Z",
+    "total_skills": 25,
+    "total_patterns": 8,
+    "total_anti_patterns": 12,
+    "last_updated": "2026-03-02T13:30:00Z",
     "created_at": "2026-01-05T00:00:00Z",
-    "last_task": "AIRIS-67: Fix @InboxSubscribe Decorator Recording"
+    "last_task": "Eliminate DB polling with event-driven architecture"
   }
 }

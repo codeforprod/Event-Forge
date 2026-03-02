@@ -66,14 +66,14 @@ class EventForgeAgentClient:
         return self._outbox_service
 
     async def start(self) -> None:
-        """Connect publisher and start outbox polling."""
+        """Connect publisher and start outbox processor."""
         await self._outbox_service.publisher.connect()
-        self._outbox_service.start_polling()
+        self._outbox_service.start_processor()
         logger.info("EventForgeAgentClient started")
 
     async def stop(self) -> None:
-        """Stop polling and disconnect publisher."""
-        self._outbox_service.stop_polling()
+        """Stop processor and disconnect publisher."""
+        self._outbox_service.stop_processor()
         await self._outbox_service.publisher.disconnect()
         logger.info("EventForgeAgentClient stopped")
 

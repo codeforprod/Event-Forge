@@ -18,13 +18,7 @@ MessageHandler = Callable[[InboxMessage], Awaitable[None]]
 class InboxService(SimpleEventEmitter):
     """Inbox Service — manages message reception, deduplication, and processing.
 
-    Port of the Node.js InboxService with:
-    - Handler registration per event type
-    - Deduplication via repository record()
-    - Retry polling for failed messages (when enable_retry=True)
-    - Exponential backoff with jitter
-    - Event emission matching Node.js events
-    - Cleanup timer for old messages
+    Retries are handled inline by the consumer (no DB polling).
     """
 
     def __init__(
@@ -36,9 +30,7 @@ class InboxService(SimpleEventEmitter):
         self.repository = repository
         self.config = config or InboxConfig()
         self._handlers: dict[str, list[MessageHandler]] = defaultdict(list)
-        self._retry_polling_task: Optional[asyncio.Task[None]] = None
         self._cleanup_task: Optional[asyncio.Task[None]] = None
-        self._is_processing_retries = False
 
     def register_handler(self, event_type: str, handler: MessageHandler) -> None:
         """Register a handler for a specific event type."""
@@ -140,62 +132,6 @@ class InboxService(SimpleEventEmitter):
         final_delay = capped_delay + jitter
 
         return max(0.0, final_delay * 1000)
-
-    def start_retry_polling(self) -> None:
-        """Start retry polling for failed messages (only if enable_retry=True)."""
-        if not self.config.enable_retry:
-            return
-
-        if self._retry_polling_task is not None:
-            return
-
-        self.emit(InboxEvents.RETRY_POLLING_STARTED)
-        self._retry_polling_task = asyncio.create_task(self._retry_poll_loop())
-
-        # Initial poll
-        asyncio.create_task(self._poll_and_retry())
-
-    def stop_retry_polling(self) -> None:
-        """Stop retry polling."""
-        if self._retry_polling_task is not None:
-            self._retry_polling_task.cancel()
-            self._retry_polling_task = None
-            self.emit(InboxEvents.RETRY_POLLING_STOPPED)
-
-    async def _retry_poll_loop(self) -> None:
-        """Retry polling loop — runs until cancelled."""
-        while True:
-            try:
-                await asyncio.sleep(self.config.retry_polling_interval)
-                await self._poll_and_retry()
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Error in inbox retry polling: {e}", exc_info=True)
-                self.emit("error", e)
-
-    async def _poll_and_retry(self) -> None:
-        """Fetch and retry failed messages with concurrency guard."""
-        if self._is_processing_retries:
-            return
-
-        self._is_processing_retries = True
-        try:
-            messages = await self.repository.find_retryable(self.config.retry_batch_size)
-
-            if not messages:
-                return
-
-            # Process each message — use gather with return_exceptions to continue on failure
-            await asyncio.gather(
-                *(self.process_message(msg) for msg in messages),
-                return_exceptions=True,
-            )
-        except Exception as e:
-            logger.error(f"Error in poll_and_retry: {e}", exc_info=True)
-            self.emit("error", e)
-        finally:
-            self._is_processing_retries = False
 
     def start_cleanup(self) -> None:
         """Start cleanup timer for old messages."""

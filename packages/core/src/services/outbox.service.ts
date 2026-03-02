@@ -14,19 +14,24 @@ export enum OutboxEvents {
   MESSAGE_CREATED = 'outbox:message:created',
   MESSAGE_PUBLISHED = 'outbox:message:published',
   MESSAGE_FAILED = 'outbox:message:failed',
+  PROCESSOR_STARTED = 'outbox:processor:started',
+  PROCESSOR_STOPPED = 'outbox:processor:stopped',
+  /** @deprecated Use PROCESSOR_STARTED */
   POLLING_STARTED = 'outbox:polling:started',
+  /** @deprecated Use PROCESSOR_STOPPED */
   POLLING_STOPPED = 'outbox:polling:stopped',
 }
 
 /**
  * Outbox Service
- * Manages outbox message creation, polling, and publishing
+ * Manages outbox message creation, event-driven publishing, and safety-net polling
  */
 export class OutboxService extends EventEmitter {
   private readonly config: Required<OutboxConfig>;
-  private pollingTimer?: NodeJS.Timeout;
+  private safetyNetTimer?: NodeJS.Timeout;
   private cleanupTimer?: NodeJS.Timeout;
   private isProcessing = false;
+  private retryTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly repository: IOutboxRepository,
@@ -34,7 +39,11 @@ export class OutboxService extends EventEmitter {
     config?: OutboxConfig,
   ) {
     super();
-    this.config = { ...DEFAULT_OUTBOX_CONFIG, ...config };
+    this.config = {
+      ...DEFAULT_OUTBOX_CONFIG,
+      ...config,
+      safetyNetInterval: config?.safetyNetInterval ?? config?.pollingInterval ?? DEFAULT_OUTBOX_CONFIG.safetyNetInterval,
+    };
   }
 
   /**
@@ -69,52 +78,95 @@ export class OutboxService extends EventEmitter {
   }
 
   /**
-   * Start polling for pending messages
+   * Start the event-driven processor
+   * - Listens for MESSAGE_CREATED events for immediate publish
+   * - Runs a low-frequency safety net poll for crash recovery
    */
-  startPolling(): void {
-    if (this.pollingTimer) {
+  startProcessor(): void {
+    if (this.safetyNetTimer) {
       return;
     }
 
-    this.emit(OutboxEvents.POLLING_STARTED);
-    this.pollingTimer = setInterval(() => {
+    // Event-driven: immediate publish on create
+    this.on(OutboxEvents.MESSAGE_CREATED, (id: string) => {
+      void this.processMessageById(id);
+    });
+
+    // Safety net: low-frequency poll for crash recovery
+    this.safetyNetTimer = setInterval(() => {
       void this.pollAndProcess();
-    }, this.config.pollingInterval);
+    }, this.config.safetyNetInterval);
 
-    // Initial poll
-    void this.pollAndProcess();
-
-    // Start cleanup timer
     this.startCleanup();
+
+    this.emit(OutboxEvents.PROCESSOR_STARTED);
+    this.emit(OutboxEvents.POLLING_STARTED);
   }
 
   /**
-   * Stop polling
+   * Stop the processor
    */
-  stopPolling(): void {
-    if (this.pollingTimer) {
-      clearInterval(this.pollingTimer);
-      this.pollingTimer = undefined;
-      this.emit(OutboxEvents.POLLING_STOPPED);
+  stopProcessor(): void {
+    if (this.safetyNetTimer) {
+      clearInterval(this.safetyNetTimer);
+      this.safetyNetTimer = undefined;
     }
 
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = undefined;
     }
+
+    // Clear all retry timers
+    for (const timer of this.retryTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.retryTimers.clear();
+
+    // Remove MESSAGE_CREATED listeners added by startProcessor
+    this.removeAllListeners(OutboxEvents.MESSAGE_CREATED);
+
+    this.emit(OutboxEvents.PROCESSOR_STOPPED);
+    this.emit(OutboxEvents.POLLING_STOPPED);
+  }
+
+  /**
+   * @deprecated Use startProcessor() instead
+   */
+  startPolling(): void {
+    this.startProcessor();
+  }
+
+  /**
+   * @deprecated Use stopProcessor() instead
+   */
+  stopPolling(): void {
+    this.stopProcessor();
+  }
+
+  /**
+   * Process a specific message by ID (event-driven path)
+   */
+  async processMessageById(id: string): Promise<void> {
+    try {
+      const message = await this.repository.findAndLockById(id, this.config.workerId);
+      if (!message) return;
+      await this.publishMessage(message);
+    } catch (error) {
+      this.emit('error', error);
+    }
   }
 
   /**
    * Process a specific message immediately
+   * @deprecated This method polls all pending messages. Use processMessageById() instead.
    */
   async processMessage(_messageId: string): Promise<void> {
-    // This will be called via EventEmitter when a message is created
-    // We'll poll immediately to pick it up
     await this.pollAndProcess();
   }
 
   /**
-   * Poll for pending messages and process them
+   * Poll for pending messages and process them (safety net)
    */
   private async pollAndProcess(): Promise<void> {
     if (this.isProcessing) {
@@ -187,6 +239,13 @@ export class OutboxService extends EventEmitter {
     // Mark as failed with scheduled retry
     await this.repository.markFailed(message.id, errorMessage, false, scheduledAt);
     this.emit(OutboxEvents.MESSAGE_FAILED, { message, error, permanent: false });
+
+    // Schedule retry via setTimeout (event-driven retry)
+    const timer = setTimeout(() => {
+      this.retryTimers.delete(message.id);
+      void this.processMessageById(message.id);
+    }, backoffDelay);
+    this.retryTimers.set(message.id, timer);
   }
 
   /**

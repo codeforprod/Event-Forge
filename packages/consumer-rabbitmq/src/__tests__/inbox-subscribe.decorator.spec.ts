@@ -25,7 +25,6 @@ describe('InboxSubscribe Decorator', () => {
       markProcessing: jest.fn(),
       markProcessed: jest.fn(),
       markFailed: jest.fn(),
-      findRetryable: jest.fn(),
       deleteOlderThan: jest.fn(),
     };
 
@@ -372,45 +371,9 @@ describe('InboxSubscribe Decorator', () => {
       // Restore module ref for other tests
       setModuleRef(mockModuleRef);
     });
-
-    it('should propagate errors from original handler', async () => {
-      const options = {
-        exchange: 'events',
-        routingKey: 'user.created',
-        source: 'user-service',
-      };
-
-      mockInboxRepository.record.mockResolvedValue({
-        message: {
-          id: 'inbox-1',
-          messageId: 'msg-123',
-          source: 'user-service',
-          eventType: 'user.created',
-          payload: {},
-          status: InboxMessageStatus.RECEIVED,
-          retryCount: 0,
-          maxRetries: 3,
-          createdAt: new Date(),
-        },
-        isDuplicate: false,
-      });
-
-      const testError = new Error('Handler failed');
-      const originalMethod = jest.fn().mockRejectedValue(testError);
-      const descriptor = { value: originalMethod };
-
-      const decorator = InboxSubscribe(options);
-      decorator({}, 'handleUserCreated', descriptor);
-
-      const message: RabbitMQMessage = {
-        id: 'msg-123',
-      };
-
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
-    });
   });
 
-  describe('error handling and retry integration', () => {
+  describe('error handling and inline retry', () => {
     it('should mark message as processed on successful handler execution', async () => {
       const options = {
         exchange: 'events',
@@ -450,11 +413,97 @@ describe('InboxSubscribe Decorator', () => {
       expect(mockInboxRepository.markProcessed).toHaveBeenCalledWith('inbox-1');
     });
 
-    it('should mark message as failed with error_message when handler throws', async () => {
+    it('should not throw on handler error — returns to ACK the message', async () => {
       const options = {
         exchange: 'events',
         routingKey: 'user.created',
         source: 'user-service',
+        maxRetries: 0, // No retries — immediate permanent fail
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 0,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      const testError = new Error('Handler failed');
+      const originalMethod = jest.fn().mockRejectedValue(testError);
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+      };
+
+      // Should NOT throw — inline retry handles everything
+      const result = await descriptor.value(message);
+      expect(result).toBeUndefined();
+    });
+
+    it('should mark message as permanently failed when maxRetries exceeded', async () => {
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+        maxRetries: 0, // No retries — attempt 0 >= maxRetries 0
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 0,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      const testError = new Error('Handler failed');
+      const originalMethod = jest.fn().mockRejectedValue(testError);
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+      };
+
+      await descriptor.value(message);
+
+      // Verify message was marked as permanently failed
+      expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
+        'inbox-1',
+        'Handler failed',
+        true, // permanent
+      );
+    });
+
+    it('should mark message as permanently failed for ProcessingError', async () => {
+      const { ProcessingError } = require('@prodforcode/event-forge-core');
+
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+        maxRetries: 3,
       };
 
       mockInboxRepository.record.mockResolvedValue({
@@ -472,8 +521,8 @@ describe('InboxSubscribe Decorator', () => {
         isDuplicate: false,
       });
 
-      const testError = new Error('Handler failed');
-      const originalMethod = jest.fn().mockRejectedValue(testError);
+      const permanentError = new ProcessingError('Invalid payload', 'msg-123', 'user.created');
+      const originalMethod = jest.fn().mockRejectedValue(permanentError);
       const descriptor = { value: originalMethod };
 
       const decorator = InboxSubscribe(options);
@@ -483,120 +532,26 @@ describe('InboxSubscribe Decorator', () => {
         id: 'msg-123',
       };
 
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
+      // Should NOT throw — decorator returns (ACK)
+      await descriptor.value(message);
 
-      // Verify message was marked as failed with error message
+      // Should immediately mark as permanent (no retries for ProcessingError)
       expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
         'inbox-1',
-        'Handler failed',
-        false, // not permanent
-        expect.any(Date), // scheduledAt for retry
-      );
-    });
-
-    it('should schedule retry with exponential backoff when retryCount < maxRetries', async () => {
-      const options = {
-        exchange: 'events',
-        routingKey: 'user.created',
-        source: 'user-service',
-        backoffBaseSeconds: 5,
-        maxBackoffSeconds: 3600,
-      };
-
-      mockInboxRepository.record.mockResolvedValue({
-        message: {
-          id: 'inbox-1',
-          messageId: 'msg-123',
-          source: 'user-service',
-          eventType: 'user.created',
-          payload: {},
-          status: InboxMessageStatus.RECEIVED,
-          retryCount: 1, // Already retried once
-          maxRetries: 3,
-          createdAt: new Date(),
-        },
-        isDuplicate: false,
-      });
-
-      const testError = new Error('Handler failed');
-      const originalMethod = jest.fn().mockRejectedValue(testError);
-      const descriptor = { value: originalMethod };
-
-      const decorator = InboxSubscribe(options);
-      decorator({}, 'handleUserCreated', descriptor);
-
-      const message: RabbitMQMessage = {
-        id: 'msg-123',
-      };
-
-      const beforeTime = Date.now();
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
-      const afterTime = Date.now();
-
-      // Verify markFailed was called
-      expect(mockInboxRepository.markFailed).toHaveBeenCalled();
-
-      // Check the scheduledAt is set to exponential backoff
-      const markFailedCall = mockInboxRepository.markFailed.mock.calls[0];
-      const scheduledAt = markFailedCall[3] as Date;
-
-      // For retryCount=1, base=5, delay should be 5 * 2^1 = 10s ± 10% jitter
-      // So between 9s and 11s from now
-      const minDelay = beforeTime + 9000;
-      const maxDelay = afterTime + 11000;
-
-      expect(scheduledAt.getTime()).toBeGreaterThanOrEqual(minDelay);
-      expect(scheduledAt.getTime()).toBeLessThanOrEqual(maxDelay);
-    });
-
-    it('should mark message as permanently failed when maxRetries exceeded', async () => {
-      const options = {
-        exchange: 'events',
-        routingKey: 'user.created',
-        source: 'user-service',
-      };
-
-      mockInboxRepository.record.mockResolvedValue({
-        message: {
-          id: 'inbox-1',
-          messageId: 'msg-123',
-          source: 'user-service',
-          eventType: 'user.created',
-          payload: {},
-          status: InboxMessageStatus.RECEIVED,
-          retryCount: 3, // Already at maxRetries
-          maxRetries: 3,
-          createdAt: new Date(),
-        },
-        isDuplicate: false,
-      });
-
-      const testError = new Error('Handler failed');
-      const originalMethod = jest.fn().mockRejectedValue(testError);
-      const descriptor = { value: originalMethod };
-
-      const decorator = InboxSubscribe(options);
-      decorator({}, 'handleUserCreated', descriptor);
-
-      const message: RabbitMQMessage = {
-        id: 'msg-123',
-      };
-
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
-
-      // Verify message was marked as permanently failed
-      expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
-        'inbox-1',
-        'Handler failed',
+        'Invalid payload',
         true, // permanent
       );
+
+      // Handler called only once — no retry for ProcessingError
+      expect(originalMethod).toHaveBeenCalledTimes(1);
     });
 
-    it('should emit MESSAGE_FAILED event on handler error', async () => {
+    it('should emit MESSAGE_FAILED event with permanent=true when max retries exceeded', async () => {
       const options = {
         exchange: 'events',
         routingKey: 'user.created',
         source: 'user-service',
+        maxRetries: 0,
       };
 
       const recordedMessage = {
@@ -607,7 +562,7 @@ describe('InboxSubscribe Decorator', () => {
         payload: {},
         status: InboxMessageStatus.RECEIVED,
         retryCount: 0,
-        maxRetries: 3,
+        maxRetries: 0,
         createdAt: new Date(),
       };
 
@@ -627,56 +582,7 @@ describe('InboxSubscribe Decorator', () => {
         id: 'msg-123',
       };
 
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
-
-      // Verify MESSAGE_FAILED event was emitted
-      expect(mockInboxService.emit).toHaveBeenCalledWith(
-        'inbox:message:failed',
-        expect.objectContaining({
-          message: recordedMessage,
-          error: 'Handler failed',
-          permanent: false,
-          scheduledAt: expect.any(Date),
-        }),
-      );
-    });
-
-    it('should emit MESSAGE_FAILED event with permanent=true when maxRetries exceeded', async () => {
-      const options = {
-        exchange: 'events',
-        routingKey: 'user.created',
-        source: 'user-service',
-      };
-
-      const recordedMessage = {
-        id: 'inbox-1',
-        messageId: 'msg-123',
-        source: 'user-service',
-        eventType: 'user.created',
-        payload: {},
-        status: InboxMessageStatus.RECEIVED,
-        retryCount: 3, // At maxRetries
-        maxRetries: 3,
-        createdAt: new Date(),
-      };
-
-      mockInboxRepository.record.mockResolvedValue({
-        message: recordedMessage,
-        isDuplicate: false,
-      });
-
-      const testError = new Error('Handler failed');
-      const originalMethod = jest.fn().mockRejectedValue(testError);
-      const descriptor = { value: originalMethod };
-
-      const decorator = InboxSubscribe(options);
-      decorator({}, 'handleUserCreated', descriptor);
-
-      const message: RabbitMQMessage = {
-        id: 'msg-123',
-      };
-
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
+      await descriptor.value(message);
 
       // Verify MESSAGE_FAILED event was emitted with permanent=true
       expect(mockInboxService.emit).toHaveBeenCalledWith(
@@ -689,12 +595,16 @@ describe('InboxSubscribe Decorator', () => {
       );
     });
 
-    it('should use custom maxRetries from decorator options', async () => {
+    it('should retry with inline backoff on transient errors', async () => {
+      jest.useFakeTimers();
+
       const options = {
         exchange: 'events',
         routingKey: 'user.created',
         source: 'user-service',
-        maxRetries: 5, // Custom maxRetries
+        maxRetries: 2,
+        backoffBaseSeconds: 1,
+        maxBackoffSeconds: 10,
       };
 
       mockInboxRepository.record.mockResolvedValue({
@@ -705,8 +615,148 @@ describe('InboxSubscribe Decorator', () => {
           eventType: 'user.created',
           payload: {},
           status: InboxMessageStatus.RECEIVED,
-          retryCount: 3, // Would be at limit with default of 3, but not with custom 5
-          maxRetries: 3, // Message default, but should be overridden
+          retryCount: 0,
+          maxRetries: 2,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      // Fail first 2 attempts, succeed on 3rd
+      const originalMethod = jest.fn()
+        .mockRejectedValueOnce(new Error('Fail 1'))
+        .mockRejectedValueOnce(new Error('Fail 2'))
+        .mockResolvedValueOnce('success');
+
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+      };
+
+      // Start the handler
+      const resultPromise = descriptor.value(message);
+
+      // Advance past first backoff (attempt 0 fail: base * 2^0 = 1s ± jitter)
+      await jest.advanceTimersByTimeAsync(2000);
+
+      // Advance past second backoff (attempt 1 fail: base * 2^1 = 2s ± jitter)
+      await jest.advanceTimersByTimeAsync(3000);
+
+      const result = await resultPromise;
+
+      // Handler called 3 times (attempt 0, 1, 2)
+      expect(originalMethod).toHaveBeenCalledTimes(3);
+
+      // First two attempts marked as failed (non-permanent)
+      expect(mockInboxRepository.markFailed).toHaveBeenCalledTimes(2);
+      expect(mockInboxRepository.markFailed).toHaveBeenNthCalledWith(
+        1, 'inbox-1', 'Fail 1', false,
+      );
+      expect(mockInboxRepository.markFailed).toHaveBeenNthCalledWith(
+        2, 'inbox-1', 'Fail 2', false,
+      );
+
+      // Final attempt succeeded
+      expect(mockInboxRepository.markProcessed).toHaveBeenCalledWith('inbox-1');
+      expect(result).toBe('success');
+
+      jest.useRealTimers();
+    });
+
+    it('should emit MESSAGE_FAILED with permanent=false during inline retry', async () => {
+      jest.useFakeTimers();
+
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+        maxRetries: 1,
+        backoffBaseSeconds: 1,
+        maxBackoffSeconds: 10,
+      };
+
+      const recordedMessage = {
+        id: 'inbox-1',
+        messageId: 'msg-123',
+        source: 'user-service',
+        eventType: 'user.created',
+        payload: {},
+        status: InboxMessageStatus.RECEIVED,
+        retryCount: 0,
+        maxRetries: 1,
+        createdAt: new Date(),
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: recordedMessage,
+        isDuplicate: false,
+      });
+
+      const testError = new Error('Transient error');
+      const originalMethod = jest.fn()
+        .mockRejectedValueOnce(testError)
+        .mockRejectedValueOnce(new Error('Still failing'));
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+      };
+
+      const resultPromise = descriptor.value(message);
+
+      // Advance past backoff
+      await jest.advanceTimersByTimeAsync(2000);
+
+      await resultPromise;
+
+      // First attempt: non-permanent failure
+      expect(mockInboxService.emit).toHaveBeenCalledWith(
+        'inbox:message:failed',
+        expect.objectContaining({
+          message: recordedMessage,
+          error: 'Transient error',
+          permanent: false,
+        }),
+      );
+
+      // Second attempt (attempt 1 >= maxRetries 1): permanent failure
+      expect(mockInboxService.emit).toHaveBeenCalledWith(
+        'inbox:message:failed',
+        expect.objectContaining({
+          message: recordedMessage,
+          error: 'Still failing',
+          permanent: true,
+        }),
+      );
+
+      jest.useRealTimers();
+    });
+
+    it('should use custom maxRetries from decorator options', async () => {
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+        maxRetries: 0, // Override message default of 3
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 3, // Message default, overridden by decorator options
           createdAt: new Date(),
         },
         isDuplicate: false,
@@ -723,14 +773,14 @@ describe('InboxSubscribe Decorator', () => {
         id: 'msg-123',
       };
 
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
+      await descriptor.value(message);
 
-      // Verify message was marked as failed but NOT permanent (because custom maxRetries=5)
+      // With maxRetries=0 from options, handler is called once then permanently fails
+      expect(originalMethod).toHaveBeenCalledTimes(1);
       expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
         'inbox-1',
         'Handler failed',
-        false, // not permanent because retryCount(3) < maxRetries(5)
-        expect.any(Date),
+        true, // permanent because maxRetries=0
       );
     });
 
@@ -754,6 +804,7 @@ describe('InboxSubscribe Decorator', () => {
         exchange: 'events',
         routingKey: 'user.created',
         source: 'user-service',
+        maxRetries: 0,
       };
 
       mockInboxRepository.record.mockResolvedValue({
@@ -765,7 +816,7 @@ describe('InboxSubscribe Decorator', () => {
           payload: {},
           status: InboxMessageStatus.RECEIVED,
           retryCount: 0,
-          maxRetries: 3,
+          maxRetries: 0,
           createdAt: new Date(),
         },
         isDuplicate: false,
@@ -782,22 +833,27 @@ describe('InboxSubscribe Decorator', () => {
         id: 'msg-123',
       };
 
-      // Should still work, just without event emission
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
+      // Should still work without throwing, just without event emission
+      await descriptor.value(message);
 
       // Repository should still be called
-      expect(mockInboxRepository.markFailed).toHaveBeenCalled();
+      expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
+        'inbox-1',
+        'Handler failed',
+        true,
+      );
 
       // Restore module ref for other tests
       setModuleRef(mockModuleRef);
     });
 
-    it('should not schedule retry when enableRetry is false', async () => {
+    it('should not retry when enableRetry is false', async () => {
       const options = {
         exchange: 'events',
         routingKey: 'user.created',
         source: 'user-service',
         enableRetry: false, // Disable retry
+        maxRetries: 3,
       };
 
       mockInboxRepository.record.mockResolvedValue({
@@ -826,14 +882,16 @@ describe('InboxSubscribe Decorator', () => {
         id: 'msg-123',
       };
 
-      await expect(descriptor.value(message)).rejects.toThrow('Handler failed');
+      await descriptor.value(message);
 
-      // Verify markFailed was called WITHOUT scheduledAt
+      // Handler called only once — no retry when enableRetry is false
+      expect(originalMethod).toHaveBeenCalledTimes(1);
+
+      // Marked as permanently failed immediately
       expect(mockInboxRepository.markFailed).toHaveBeenCalledWith(
         'inbox-1',
         'Handler failed',
-        false,
-        undefined, // No scheduledAt when enableRetry is false
+        true, // permanent when enableRetry is false
       );
     });
   });
