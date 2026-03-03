@@ -72,6 +72,7 @@ export class DelayedMessagePublisher implements IMessagePublisher {
         'x-aggregate-id': message.aggregateId,
         'x-event-type': message.eventType,
         ...(delay !== null && { 'x-delay': delay }),
+        ...this.buildTraceparentHeader(message),
       },
     };
 
@@ -180,6 +181,21 @@ export class DelayedMessagePublisher implements IMessagePublisher {
     }
 
     return this.config.delayedExchange;
+  }
+
+  /**
+   * Build W3C traceparent header from message metadata
+   * Format: 00-{traceId}-{spanId}-01
+   */
+  private buildTraceparentHeader(message: OutboxMessage): Record<string, string> {
+    const traceId = message.metadata?.traceId;
+    if (!traceId || typeof traceId !== 'string') {
+      return {};
+    }
+    const spanId = typeof message.metadata?.spanId === 'string'
+      ? message.metadata.spanId
+      : '0000000000000000';
+    return { traceparent: `00-${traceId}-${spanId}-01` };
   }
 
   /**

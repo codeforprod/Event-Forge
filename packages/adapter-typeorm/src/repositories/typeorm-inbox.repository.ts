@@ -42,6 +42,7 @@ export class TypeOrmInboxRepository implements IInboxRepository {
       source: dto.source,
       eventType: dto.eventType,
       payload: dto.payload,
+      metadata: dto.metadata ?? undefined,
       status: InboxMessageStatus.RECEIVED,
       retryCount: 0,
       maxRetries: dto.maxRetries ?? 3,

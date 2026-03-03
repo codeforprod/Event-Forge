@@ -34,6 +34,9 @@ export class InboxMessageEntity implements InboxMessage {
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
+  @Column({ type: 'jsonb', nullable: true })
+  metadata?: Record<string, unknown>;
+
   @Column({
     type: 'enum',
     enum: InboxMessageStatus,

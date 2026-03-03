@@ -9,6 +9,7 @@ class CreateInboxMessageDto(BaseModel):
     source: str
     event_type: str
     payload: dict[str, Any]
+    metadata: Optional[dict[str, Any]] = None
     max_retries: Optional[int] = None
 
 
@@ -18,6 +19,7 @@ class InboxMessage(BaseModel):
     source: str
     event_type: str
     payload: dict[str, Any]
+    metadata: Optional[dict[str, Any]] = None
     status: InboxMessageStatus
     retry_count: int = 0
     max_retries: int = 3

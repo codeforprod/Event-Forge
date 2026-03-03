@@ -308,6 +308,150 @@ describe('InboxSubscribe Decorator', () => {
       });
     });
 
+    it('should forward metadata from message body to inbox repository record()', async () => {
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          metadata: { traceId: 'abc123', spanId: 'def456' },
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      const originalMethod = jest.fn().mockResolvedValue('result');
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+        metadata: { traceId: 'abc123', spanId: 'def456' },
+        properties: {
+          type: 'user.created',
+        },
+      };
+
+      await descriptor.value(message);
+
+      // Verify metadata was forwarded to inbox repository
+      expect(mockInboxRepository.record).toHaveBeenCalledWith({
+        messageId: 'msg-123',
+        source: 'user-service',
+        eventType: 'user.created',
+        payload: message,
+        metadata: { traceId: 'abc123', spanId: 'def456' },
+      });
+    });
+
+    it('should not forward metadata when message has no metadata field', async () => {
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      const originalMethod = jest.fn().mockResolvedValue('result');
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+        properties: {
+          type: 'user.created',
+        },
+      };
+
+      await descriptor.value(message);
+
+      // Verify metadata is undefined when not present in message
+      expect(mockInboxRepository.record).toHaveBeenCalledWith({
+        messageId: 'msg-123',
+        source: 'user-service',
+        eventType: 'user.created',
+        payload: message,
+        metadata: undefined,
+      });
+    });
+
+    it('should not forward metadata when metadata is not an object', async () => {
+      const options = {
+        exchange: 'events',
+        routingKey: 'user.created',
+        source: 'user-service',
+      };
+
+      mockInboxRepository.record.mockResolvedValue({
+        message: {
+          id: 'inbox-1',
+          messageId: 'msg-123',
+          source: 'user-service',
+          eventType: 'user.created',
+          payload: {},
+          status: InboxMessageStatus.RECEIVED,
+          retryCount: 0,
+          maxRetries: 3,
+          createdAt: new Date(),
+        },
+        isDuplicate: false,
+      });
+
+      const originalMethod = jest.fn().mockResolvedValue('result');
+      const descriptor = { value: originalMethod };
+
+      const decorator = InboxSubscribe(options);
+      decorator({}, 'handleUserCreated', descriptor);
+
+      const message: RabbitMQMessage = {
+        id: 'msg-123',
+        metadata: 'not-an-object' as unknown,
+        properties: {
+          type: 'user.created',
+        },
+      };
+
+      await descriptor.value(message);
+
+      // Verify metadata is undefined when it's not an object
+      expect(mockInboxRepository.record).toHaveBeenCalledWith({
+        messageId: 'msg-123',
+        source: 'user-service',
+        eventType: 'user.created',
+        payload: message,
+        metadata: undefined,
+      });
+    });
+
     it('should throw error if moduleRef is not initialized', async () => {
       // Reset module ref to simulate uninitialized state
       setModuleRef(null as unknown as ModuleRef);

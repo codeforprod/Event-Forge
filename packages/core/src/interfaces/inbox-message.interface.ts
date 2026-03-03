@@ -18,6 +18,9 @@ export interface InboxMessage {
   /** Event payload data */
   payload: Record<string, unknown>;
 
+  /** Optional metadata (e.g., trace context for distributed tracing) */
+  metadata?: Record<string, unknown>;
+
   /** Current processing status */
   status: InboxMessageStatus;
 

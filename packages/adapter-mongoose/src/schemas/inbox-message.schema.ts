@@ -32,6 +32,10 @@ export const InboxMessageSchema = new Schema<InboxMessageDocument>(
       type: Schema.Types.Mixed,
       required: true,
     },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
     status: {
       type: String,
       enum: Object.values(InboxMessageStatus),

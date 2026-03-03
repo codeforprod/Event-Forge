@@ -1163,6 +1163,131 @@ describe('DelayedMessagePublisher', () => {
     });
   });
 
+  describe('traceparent header (W3C distributed tracing)', () => {
+    it('should add traceparent header when traceId and spanId are present', async () => {
+      const message = createMockMessage({
+        metadata: {
+          traceId: 'abcdef1234567890abcdef1234567890',
+          spanId: '1234567890abcdef',
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBe(
+        '00-abcdef1234567890abcdef1234567890-1234567890abcdef-01',
+      );
+    });
+
+    it('should use default spanId when only traceId is present', async () => {
+      const message = createMockMessage({
+        metadata: {
+          traceId: 'abcdef1234567890abcdef1234567890',
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBe(
+        '00-abcdef1234567890abcdef1234567890-0000000000000000-01',
+      );
+    });
+
+    it('should not add traceparent when no traceId in metadata', async () => {
+      const message = createMockMessage({
+        metadata: { correlationId: 'corr-123' },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBeUndefined();
+    });
+
+    it('should not add traceparent when metadata is undefined', async () => {
+      const message = createMockMessage();
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBeUndefined();
+    });
+
+    it('should not add traceparent when traceId is not a string', async () => {
+      const message = createMockMessage({
+        metadata: { traceId: 12345 as unknown as string },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBeUndefined();
+    });
+
+    it('should ignore non-string spanId and use default', async () => {
+      const message = createMockMessage({
+        metadata: {
+          traceId: 'abcdef1234567890abcdef1234567890',
+          spanId: 99999 as unknown as string,
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      const callArgs = mockAmqpConnection.publish.mock.calls[0];
+      const publishOptions = callArgs[3];
+      expect(publishOptions?.headers?.traceparent).toBe(
+        '00-abcdef1234567890abcdef1234567890-0000000000000000-01',
+      );
+    });
+
+    it('should include traceparent alongside other headers for delayed messages', async () => {
+      const message = createMockMessage({
+        metadata: {
+          delay: 5000,
+          traceId: 'abcdef1234567890abcdef1234567890',
+          spanId: '1234567890abcdef',
+        },
+      });
+
+      mockAmqpConnection.publish.mockResolvedValue(undefined);
+
+      await publisher.publish(message);
+
+      expect(mockAmqpConnection.publish).toHaveBeenCalledWith(
+        'events.delayed',
+        'User.user.created',
+        expect.anything(),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-aggregate-type': 'User',
+            'x-delay': 5000,
+            traceparent: '00-abcdef1234567890abcdef1234567890-1234567890abcdef-01',
+          }),
+        }),
+      );
+    });
+  });
+
   describe('combined custom routing and exchange', () => {
     it('should use both custom routing key and custom exchange', async () => {
       // Arrange
