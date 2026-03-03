@@ -19,7 +19,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "sync-versions": "node scripts/sync-python-version.js",
-    "ci:publish": "pnpm publish -r --access public --no-git-checks",
+    "ci:publish": "changeset publish",
     "release": "pnpm build && pnpm ci:publish"
   },
   "devDependencies": {
