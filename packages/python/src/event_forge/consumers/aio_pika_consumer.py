@@ -118,6 +118,7 @@ class AioPikaConsumer:
                 source=self._source_name,
                 event_type=str(event_type),
                 payload=body.get("payload", body),
+                metadata=body.get("metadata"),
             )
 
             await self._inbox_service.receive_message(dto)

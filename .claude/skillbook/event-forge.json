@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "service": "event-forge",
   "description": "Skillbook for Event-Forge project - patterns, learnings, and best practices",
   "skills": [
@@ -18,7 +18,11 @@
           "Add scripts: changeset, version-packages, ci:publish, release"
         ],
         "config_example": {
-          "linked": [["@event-forge/inbox-outbox-*"]],
+          "linked": [
+            [
+              "@event-forge/inbox-outbox-*"
+            ]
+          ],
           "access": "public",
           "baseBranch": "main"
         }
@@ -29,7 +33,13 @@
         "Creates version bump PRs automatically",
         "Handles monorepo inter-package dependencies"
       ],
-      "tags": ["changesets", "monorepo", "publishing", "npm", "versioning"]
+      "tags": [
+        "changesets",
+        "monorepo",
+        "publishing",
+        "npm",
+        "versioning"
+      ]
     },
     {
       "id": "pypi-trusted-publishers",
@@ -62,7 +72,13 @@
         "More secure than token-based auth",
         "Integrated with GitHub Actions"
       ],
-      "tags": ["pypi", "publishing", "security", "oidc", "trusted-publishers"]
+      "tags": [
+        "pypi",
+        "publishing",
+        "security",
+        "oidc",
+        "trusted-publishers"
+      ]
     },
     {
       "id": "npm-python-version-sync",
@@ -81,7 +97,13 @@
         "Automated - no manual version updates needed",
         "Runs in CI pipeline before publishing"
       ],
-      "tags": ["version-sync", "npm", "python", "automation", "monorepo"]
+      "tags": [
+        "version-sync",
+        "npm",
+        "python",
+        "automation",
+        "monorepo"
+      ]
     },
     {
       "id": "changesets-github-actions-workflow",
@@ -114,7 +136,13 @@
         "Merging version PR triggers publish job",
         "Published packages trigger downstream jobs (e.g., Python publishing)"
       ],
-      "tags": ["changesets", "github-actions", "ci-cd", "automation", "publishing"]
+      "tags": [
+        "changesets",
+        "github-actions",
+        "ci-cd",
+        "automation",
+        "publishing"
+      ]
     },
     {
       "id": "conditional-pypi-publishing",
@@ -132,7 +160,13 @@
         "Ensures version synchronization",
         "Cleaner workflow execution"
       ],
-      "tags": ["github-actions", "conditional-execution", "pypi", "npm", "workflow"]
+      "tags": [
+        "github-actions",
+        "conditional-execution",
+        "pypi",
+        "npm",
+        "workflow"
+      ]
     },
     {
       "id": "typeorm-pessimistic-lock-transaction",
@@ -177,7 +211,14 @@
         "method": "fetchAndLockPending",
         "fix_commit": "AIRIS-46"
       },
-      "tags": ["typeorm", "pessimistic-lock", "transaction", "postgresql", "concurrency", "bug-fix"]
+      "tags": [
+        "typeorm",
+        "pessimistic-lock",
+        "transaction",
+        "postgresql",
+        "concurrency",
+        "bug-fix"
+      ]
     },
     {
       "id": "nestjs-lifecycle-hooks",
@@ -206,7 +247,13 @@
         "Graceful shutdown handling",
         "Optional - can be disabled for custom control"
       ],
-      "tags": ["nestjs", "lifecycle", "automation", "di", "best-practice"]
+      "tags": [
+        "nestjs",
+        "lifecycle",
+        "automation",
+        "di",
+        "best-practice"
+      ]
     },
     {
       "id": "nestjs-conditional-providers",
@@ -224,7 +271,12 @@
         "Type-safe configuration",
         "Easy to test with different configurations"
       ],
-      "tags": ["nestjs", "di", "conditional-logic", "configuration"]
+      "tags": [
+        "nestjs",
+        "di",
+        "conditional-logic",
+        "configuration"
+      ]
     },
     {
       "id": "eslint-import-order",
@@ -236,7 +288,12 @@
         "correct_pattern": "import { External } from '@package';\nimport { External2 } from '@package2';\n\nimport { Internal } from './internal';",
         "groups": "1. External packages (@namespace, npm packages), 2. Empty line, 3. Internal imports (./relative)"
       },
-      "tags": ["eslint", "import-order", "code-style", "linting"]
+      "tags": [
+        "eslint",
+        "import-order",
+        "code-style",
+        "linting"
+      ]
     },
     {
       "id": "rabbitmq-x-delay-header-mapping",
@@ -251,7 +308,7 @@
           "Reject: string, null, undefined, NaN, object, negative numbers",
           "Accept: positive numbers, zero (treated as immediate), Infinity"
         ],
-        "extraction_pattern": "Check existence → type check → range check → return number or null",
+        "extraction_pattern": "Check existence \u2192 type check \u2192 range check \u2192 return number or null",
         "header_mapping": "Only add x-delay header if delay is valid number >= 0"
       },
       "benefits": [
@@ -261,7 +318,13 @@
         "Prevents runtime errors from invalid delay values"
       ],
       "code_example": "private extractDelay(message: OutboxMessage): number | null {\n  if (!message.metadata?.delay) return null;\n  const delay = message.metadata.delay;\n  if (typeof delay !== 'number') return null;\n  if (delay < 0) return null;\n  return delay;\n}",
-      "tags": ["rabbitmq", "validation", "type-safety", "header-mapping", "delayed-messages"]
+      "tags": [
+        "rabbitmq",
+        "validation",
+        "type-safety",
+        "header-mapping",
+        "delayed-messages"
+      ]
     },
     {
       "id": "comprehensive-edge-case-testing",
@@ -276,7 +339,7 @@
           "Range violations (negative numbers, zero)",
           "Valid values (positive numbers, large numbers)"
         ],
-        "test_pattern": "Arrange → Act → Assert fallback behavior",
+        "test_pattern": "Arrange \u2192 Act \u2192 Assert fallback behavior",
         "coverage_targets": [
           "Test 8+ invalid value scenarios",
           "Verify graceful fallback for each",
@@ -291,16 +354,22 @@
         "Builds confidence in error handling"
       ],
       "edge_cases_tested": [
-        "negative delay → immediate delivery",
-        "string delay → immediate delivery",
-        "null delay → immediate delivery",
-        "undefined delay → immediate delivery",
-        "NaN delay → immediate delivery",
-        "object delay → immediate delivery",
-        "zero delay → immediate delivery",
-        "Infinity delay → delayed delivery (valid)"
+        "negative delay \u2192 immediate delivery",
+        "string delay \u2192 immediate delivery",
+        "null delay \u2192 immediate delivery",
+        "undefined delay \u2192 immediate delivery",
+        "NaN delay \u2192 immediate delivery",
+        "object delay \u2192 immediate delivery",
+        "zero delay \u2192 immediate delivery",
+        "Infinity delay \u2192 delayed delivery (valid)"
       ],
-      "tags": ["testing", "edge-cases", "validation", "robustness", "type-safety"]
+      "tags": [
+        "testing",
+        "edge-cases",
+        "validation",
+        "robustness",
+        "type-safety"
+      ]
     },
     {
       "id": "plugin-prerequisite-documentation",
@@ -330,7 +399,13 @@
         "Sets correct expectations about external dependencies"
       ],
       "example_structure": "## Prerequisites\n\nRequires rabbitmq_delayed_message_exchange plugin.\n\n**Installation:**\n```bash\nrabbitmq-plugins enable rabbitmq_delayed_message_exchange\nrabbitmqctl restart\n```\n\n**Exchange Configuration:**\n```bash\nrabbitmqadmin declare exchange name=events.delayed type=x-delayed-message\n```",
-      "tags": ["documentation", "prerequisites", "dependencies", "user-guidance", "rabbitmq"]
+      "tags": [
+        "documentation",
+        "prerequisites",
+        "dependencies",
+        "user-guidance",
+        "rabbitmq"
+      ]
     },
     {
       "id": "empty-string-property-detection",
@@ -355,7 +430,13 @@
         "Works with optional chaining"
       ],
       "code_example": "// WRONG - treats empty string as absent\nif (!message.metadata?.routingKey) return null;\n\n// CORRECT - detects property presence\nif (!message.metadata || !('routingKey' in message.metadata)) return null;\nif (typeof message.metadata.routingKey !== 'string') return null;\nreturn message.metadata.routingKey; // Can be empty string",
-      "tags": ["javascript", "typescript", "validation", "empty-string", "property-detection"]
+      "tags": [
+        "javascript",
+        "typescript",
+        "validation",
+        "empty-string",
+        "property-detection"
+      ]
     },
     {
       "id": "exponential-backoff-with-jitter",
@@ -367,13 +448,15 @@
         "steps": [
           "Calculate base exponential delay: base * 2^retryCount",
           "Cap at maximum delay to prevent excessive wait times",
-          "Add random jitter (±10%) to prevent synchronized retries",
+          "Add random jitter (\u00b110%) to prevent synchronized retries",
           "Return final delay in milliseconds"
         ],
         "code_example": "private calculateBackoff(retryCount: number): number {\n  const baseDelaySeconds = this.config.backoffBaseSeconds;\n  const maxDelaySeconds = this.config.maxBackoffSeconds;\n  \n  const exponentialDelay = baseDelaySeconds * Math.pow(2, retryCount);\n  const cappedDelay = Math.min(exponentialDelay, maxDelaySeconds);\n  \n  const jitter = cappedDelay * 0.1 * (Math.random() * 2 - 1);\n  const finalDelay = cappedDelay + jitter;\n  \n  return Math.max(0, finalDelay * 1000);\n}",
         "formula": "min(base * 2^retryCount, maxBackoff) + jitter",
-        "jitter_calculation": "±10% randomization: delay * 0.1 * (Math.random() * 2 - 1)",
-        "files": ["packages/core/src/services/outbox.service.ts:173-189"]
+        "jitter_calculation": "\u00b110% randomization: delay * 0.1 * (Math.random() * 2 - 1)",
+        "files": [
+          "packages/core/src/services/outbox.service.ts:173-189"
+        ]
       },
       "when_to_use": [
         "Any retry mechanism with multiple concurrent workers",
@@ -392,8 +475,17 @@
         "Improves overall system stability",
         "Spreads retry attempts over time"
       ],
-      "related": ["scheduled-retry-pattern", "atomic-retry-increment"],
-      "tags": ["retry", "exponential-backoff", "jitter", "concurrency", "best-practices"]
+      "related": [
+        "scheduled-retry-pattern",
+        "atomic-retry-increment"
+      ],
+      "tags": [
+        "retry",
+        "exponential-backoff",
+        "jitter",
+        "concurrency",
+        "best-practices"
+      ]
     },
     {
       "id": "scheduled-retry-pattern",
@@ -436,8 +528,17 @@
         "Allows exponential backoff implementation",
         "Clear audit trail of scheduled retries"
       ],
-      "related": ["exponential-backoff-with-jitter", "atomic-retry-increment"],
-      "tags": ["retry", "scheduling", "database", "architecture", "scalability"]
+      "related": [
+        "exponential-backoff-with-jitter",
+        "atomic-retry-increment"
+      ],
+      "tags": [
+        "retry",
+        "scheduling",
+        "database",
+        "architecture",
+        "scalability"
+      ]
     },
     {
       "id": "atomic-retry-increment",
@@ -475,8 +576,17 @@
         "Safe for horizontal scaling",
         "No need for distributed locks"
       ],
-      "related": ["scheduled-retry-pattern", "typeorm-pessimistic-lock-transaction"],
-      "tags": ["concurrency", "race-condition", "atomic-operations", "database", "bug-prevention"]
+      "related": [
+        "scheduled-retry-pattern",
+        "typeorm-pessimistic-lock-transaction"
+      ],
+      "tags": [
+        "concurrency",
+        "race-condition",
+        "atomic-operations",
+        "database",
+        "bug-prevention"
+      ]
     },
     {
       "id": "backward-compatible-feature-flags",
@@ -516,8 +626,16 @@
         "Users can test before enabling",
         "Clear opt-in intent"
       ],
-      "related": ["nestjs-conditional-providers"],
-      "tags": ["backward-compatibility", "feature-flags", "library-design", "migration", "best-practices"]
+      "related": [
+        "nestjs-conditional-providers"
+      ],
+      "tags": [
+        "backward-compatibility",
+        "feature-flags",
+        "library-design",
+        "migration",
+        "best-practices"
+      ]
     },
     {
       "id": "retry-query-optimization",
@@ -561,8 +679,16 @@
         "postgresql": "Partial index on status + scheduledAt (filters most rows)",
         "mongodb": "Compound index on all query fields in order"
       },
-      "related": ["scheduled-retry-pattern"],
-      "tags": ["database", "optimization", "indexing", "performance", "query-tuning"]
+      "related": [
+        "scheduled-retry-pattern"
+      ],
+      "tags": [
+        "database",
+        "optimization",
+        "indexing",
+        "performance",
+        "query-tuning"
+      ]
     },
     {
       "id": "rabbitmq-deserialized-message-extraction",
@@ -610,7 +736,15 @@
         "fix_commit": "AIRIS-65",
         "tests": "packages/consumer-rabbitmq/src/__tests__/inbox-consumer.service.spec.ts:388-411"
       },
-      "tags": ["rabbitmq", "message-extraction", "deserialization", "type-checking", "golevelup", "nestjs", "bug-fix"]
+      "tags": [
+        "rabbitmq",
+        "message-extraction",
+        "deserialization",
+        "type-checking",
+        "golevelup",
+        "nestjs",
+        "bug-fix"
+      ]
     },
     {
       "id": "nestjs-decorator-timing-pattern",
@@ -660,7 +794,15 @@
         "before": "Wrapping in InboxConsumerService.onModuleInit() at instance level",
         "after": "Wrapping in @InboxSubscribe decorator at prototype level"
       },
-      "tags": ["nestjs", "decorators", "prototype", "instance", "timing", "golevelup", "bug-fix"]
+      "tags": [
+        "nestjs",
+        "decorators",
+        "prototype",
+        "instance",
+        "timing",
+        "golevelup",
+        "bug-fix"
+      ]
     },
     {
       "id": "moduleref-lazy-injection-pattern",
@@ -712,8 +854,17 @@
           "Slightly more complex than direct injection"
         ]
       },
-      "related": ["nestjs-decorator-timing-pattern"],
-      "tags": ["nestjs", "decorators", "dependency-injection", "moduleref", "lazy-injection", "best-practices"]
+      "related": [
+        "nestjs-decorator-timing-pattern"
+      ],
+      "tags": [
+        "nestjs",
+        "decorators",
+        "dependency-injection",
+        "moduleref",
+        "lazy-injection",
+        "best-practices"
+      ]
     },
     {
       "id": "decorator-composition-order",
@@ -723,7 +874,7 @@
       "solution": "Apply decorators in correct order: inner logic first, then outer discovery decorators",
       "implementation": {
         "pattern": "Modify descriptor.value with wrapper logic, THEN apply library decorators to modified descriptor",
-        "execution_flow": "Library decorator discovers method → Wrapper executes → Original method executes",
+        "execution_flow": "Library decorator discovers method \u2192 Wrapper executes \u2192 Original method executes",
         "code_example": "// CORRECT ORDER\nexport function InboxSubscribe(options): MethodDecorator {\n  return (target, propertyKey, descriptor) => {\n    // STEP 1: Wrap method (inner logic)\n    const original = descriptor.value;\n    descriptor.value = async function wrapped(...args) {\n      await doSomethingBefore();\n      return original.apply(this, args);\n    };\n    \n    // STEP 2: Apply outer decorator to wrapped method\n    RabbitSubscribe({...})(target, propertyKey, descriptor);\n  };\n}\n\n// USAGE (decorators stack bottom-to-top)\n@InboxSubscribe({ exchange: 'test' })  // Applied FIRST (outer)\nasync handleMessage(msg: any) {        // Original method (inner)\n  // handler logic\n}",
         "decorator_stacking": "Decorators are applied bottom-to-top, but inner logic should wrap BEFORE outer decorator discovers the method"
       },
@@ -751,8 +902,47 @@
         "Clean composition of cross-cutting concerns",
         "Type-safe decorator chains"
       ],
-      "related": ["nestjs-decorator-timing-pattern", "moduleref-lazy-injection-pattern"],
-      "tags": ["nestjs", "decorators", "composition", "order", "architecture", "best-practices"]
+      "related": [
+        "nestjs-decorator-timing-pattern",
+        "moduleref-lazy-injection-pattern"
+      ],
+      "tags": [
+        "nestjs",
+        "decorators",
+        "composition",
+        "order",
+        "architecture",
+        "best-practices"
+      ]
+    },
+    {
+      "id": "consumer-metadata-propagation",
+      "category": "bug-patterns",
+      "title": "Consumer must forward metadata from message body to inbox DTO",
+      "problem": "AioPikaConsumer._on_message() created CreateInboxMessageDto without metadata field, dropping trace context (traceId/spanId) from distributed trace propagation",
+      "solution": "Add metadata=body.get(\"metadata\") to CreateInboxMessageDto constructor in every consumer implementation",
+      "implementation": {
+        "steps": [
+          "In consumer _on_message() or equivalent handler, extract metadata from parsed body",
+          "Pass metadata=body.get(\"metadata\") to CreateInboxMessageDto constructor",
+          "Ensure DTO metadata field is Optional[dict] with None default for backwards compatibility",
+          "Repository layer already handles metadata persistence \u2014 no changes needed there"
+        ],
+        "code_example": "dto = CreateInboxMessageDto(message_id=str(message_id), source=self._source_name, event_type=str(event_type), payload=body.get(\"payload\", body), metadata=body.get(\"metadata\"))"
+      },
+      "benefits": [
+        "Preserves distributed trace context through the inbox pipeline",
+        "Enables end-to-end traceability: Publisher \u2192 AMQP \u2192 Consumer \u2192 Inbox DB",
+        "Consistent behavior across NestJS and Python consumers"
+      ],
+      "tags": [
+        "consumer",
+        "metadata",
+        "trace-propagation",
+        "rabbitmq",
+        "inbox",
+        "python"
+      ]
     }
   ],
   "patterns": [
@@ -798,7 +988,10 @@
         "No need for runtime routing decisions",
         "Simple point-to-point messaging"
       ],
-      "related_patterns": ["dual-exchange-delayed-messages", "metadata-driven-configuration"]
+      "related_patterns": [
+        "dual-exchange-delayed-messages",
+        "metadata-driven-configuration"
+      ]
     },
     {
       "id": "monorepo-publishing-architecture",
@@ -870,7 +1063,7 @@
       ],
       "implementation_details": {
         "routing_logic": "if (delay !== null) use delayedExchange else use directExchange",
-        "header_transformation": "metadata.delay (milliseconds) → x-delay header (milliseconds)",
+        "header_transformation": "metadata.delay (milliseconds) \u2192 x-delay header (milliseconds)",
         "routing_key_format": "{aggregateType}.{eventType}"
       },
       "trade_offs": {
@@ -896,7 +1089,10 @@
         "Cannot install RabbitMQ plugins",
         "Simple pub-sub without delay requirements"
       ],
-      "related_patterns": ["single-exchange-with-ttl", "queue-level-delays"]
+      "related_patterns": [
+        "single-exchange-with-ttl",
+        "queue-level-delays"
+      ]
     },
     {
       "id": "inbox-retry-architecture",
@@ -913,7 +1109,7 @@
       ],
       "implementation_details": {
         "retry_trigger": "findRetryable() query + polling mechanism",
-        "backoff_formula": "min(base * 2^retryCount, maxBackoff) + jitter(±10%)",
+        "backoff_formula": "min(base * 2^retryCount, maxBackoff) + jitter(\u00b110%)",
         "atomic_increment": "SQL: retry_count + 1 | MongoDB: $inc",
         "query_optimization": "Compound index on (status, retryCount, scheduledAt)"
       },
@@ -941,7 +1137,11 @@
         "Messages that should never be reprocessed",
         "Simple systems where failure is rare"
       ],
-      "related_patterns": ["exponential-backoff-with-jitter", "scheduled-retry-pattern", "atomic-retry-increment"]
+      "related_patterns": [
+        "exponential-backoff-with-jitter",
+        "scheduled-retry-pattern",
+        "atomic-retry-increment"
+      ]
     },
     {
       "id": "decorator-wrapping-at-prototype",
@@ -960,7 +1160,7 @@
         "wrapping_location": "Inside decorator function, not in onModuleInit or constructor",
         "descriptor_modification": "descriptor.value = wrappedFunction",
         "dependency_injection": "Use module-level ModuleRef variable for lazy DI",
-        "execution_order": "Wrapper logic → Original method",
+        "execution_order": "Wrapper logic \u2192 Original method",
         "discovery_timing": "Discovery decorator sees wrapped method on prototype"
       },
       "trade_offs": {
@@ -987,7 +1187,10 @@
         "When library supports middleware/interceptors instead",
         "Methods not discovered via prototype reflection"
       ],
-      "related_patterns": ["moduleref-lazy-injection-pattern", "decorator-composition-order"]
+      "related_patterns": [
+        "moduleref-lazy-injection-pattern",
+        "decorator-composition-order"
+      ]
     }
   ],
   "anti_patterns": [
@@ -1006,7 +1209,13 @@
         "wrong": "if (!metadata?.routingKey) return null; // Treats '' as absent",
         "correct": "if (!metadata || !('routingKey' in metadata)) return null; // Detects '' as present"
       },
-      "tags": ["javascript", "typescript", "validation", "empty-string", "anti-pattern"]
+      "tags": [
+        "javascript",
+        "typescript",
+        "validation",
+        "empty-string",
+        "anti-pattern"
+      ]
     },
     {
       "id": "manual-version-updates",
@@ -1019,7 +1228,11 @@
         "Inter-package dependency versions can get out of sync"
       ],
       "better_approach": "Use Changesets with linked configuration for automatic version management",
-      "tags": ["versioning", "monorepo", "manual-work"]
+      "tags": [
+        "versioning",
+        "monorepo",
+        "manual-work"
+      ]
     },
     {
       "id": "pypi-api-tokens-in-ci",
@@ -1032,7 +1245,12 @@
         "Less secure than OIDC"
       ],
       "better_approach": "Use PyPI Trusted Publishers with GitHub Actions OIDC",
-      "tags": ["security", "pypi", "tokens", "oidc"]
+      "tags": [
+        "security",
+        "pypi",
+        "tokens",
+        "oidc"
+      ]
     },
     {
       "id": "pessimistic-lock-without-transaction",
@@ -1049,7 +1267,12 @@
         "wrong": "this.repository.createQueryBuilder().setLock('pessimistic_write').getMany()",
         "correct": "this.dataSource.transaction(async (manager) => manager.getRepository(Entity).createQueryBuilder().setLock('pessimistic_write').getMany())"
       },
-      "tags": ["typeorm", "pessimistic-lock", "transaction", "anti-pattern"]
+      "tags": [
+        "typeorm",
+        "pessimistic-lock",
+        "transaction",
+        "anti-pattern"
+      ]
     },
     {
       "id": "manual-lifecycle-in-consumers",
@@ -1066,7 +1289,12 @@
         "bad": "Consumer must: constructor(service) {} onApplicationBootstrap() { service.start(); }",
         "good": "Library handles automatically via lifecycle service"
       },
-      "tags": ["nestjs", "lifecycle", "dx", "boilerplate"]
+      "tags": [
+        "nestjs",
+        "lifecycle",
+        "dx",
+        "boilerplate"
+      ]
     },
     {
       "id": "single-exchange-for-all-messages",
@@ -1079,7 +1307,12 @@
         "Wastes resources checking delay for immediate messages"
       ],
       "better_approach": "Use dual exchange pattern: direct exchange for immediate, delayed exchange for delayed messages",
-      "tags": ["rabbitmq", "performance", "architecture", "delayed-messages"]
+      "tags": [
+        "rabbitmq",
+        "performance",
+        "architecture",
+        "delayed-messages"
+      ]
     },
     {
       "id": "missing-delay-validation",
@@ -1092,7 +1325,12 @@
         "No fallback strategy for invalid input"
       ],
       "better_approach": "Validate delay is number >= 0, fall back to immediate delivery for invalid values",
-      "tags": ["validation", "type-safety", "error-handling", "delayed-messages"]
+      "tags": [
+        "validation",
+        "type-safety",
+        "error-handling",
+        "delayed-messages"
+      ]
     },
     {
       "id": "insufficient-edge-case-testing",
@@ -1105,7 +1343,12 @@
         "Unclear fallback behavior"
       ],
       "better_approach": "Test 8+ edge cases: negative, zero, string, null, undefined, NaN, object, Infinity",
-      "tags": ["testing", "edge-cases", "validation", "robustness"]
+      "tags": [
+        "testing",
+        "edge-cases",
+        "validation",
+        "robustness"
+      ]
     },
     {
       "id": "read-modify-write-retry-counter",
@@ -1122,7 +1365,12 @@
         "wrong": "const msg = await repo.findOne(id); msg.retryCount += 1; await repo.save(msg);",
         "correct": "await repo.update(id, { retryCount: () => 'retry_count + 1' });"
       },
-      "tags": ["concurrency", "race-condition", "atomic-operations", "anti-pattern"]
+      "tags": [
+        "concurrency",
+        "race-condition",
+        "atomic-operations",
+        "anti-pattern"
+      ]
     },
     {
       "id": "immediate-retry-without-backoff",
@@ -1135,7 +1383,12 @@
         "No time for transient issues to resolve"
       ],
       "better_approach": "Use exponential backoff with jitter and scheduledAt field",
-      "tags": ["retry", "backoff", "performance", "anti-pattern"]
+      "tags": [
+        "retry",
+        "backoff",
+        "performance",
+        "anti-pattern"
+      ]
     },
     {
       "id": "instance-level-decorator-wrapping",
@@ -1158,7 +1411,13 @@
         "@EventPattern sees original method, not wrapper",
         "Integration with external libraries fails silently"
       ],
-      "tags": ["nestjs", "decorators", "prototype", "instance", "anti-pattern"]
+      "tags": [
+        "nestjs",
+        "decorators",
+        "prototype",
+        "instance",
+        "anti-pattern"
+      ]
     },
     {
       "id": "event-driven-outbox-processing",
@@ -1186,14 +1445,20 @@
         "Safety net covers crash recovery without high-frequency polling",
         "Per-message retry timers avoid batch scanning overhead"
       ],
-      "tags": ["outbox", "event-driven", "performance", "polling", "pattern"]
+      "tags": [
+        "outbox",
+        "event-driven",
+        "performance",
+        "polling",
+        "pattern"
+      ]
     },
     {
       "id": "inline-retry-consumer-pattern",
       "category": "best-practices",
       "title": "Inline retry loop in consumer decorator eliminates inbox retry polling",
       "problem": "Inbox retry polling scanned DB for retryable messages on interval, but consumer already has the message in memory. Separate findRetryable() query is wasteful and complex.",
-      "solution": "Handle retries inline within the consumer decorator using a for loop with setTimeout backoff. Never re-throw to AMQP — always ACK after handling all retries.",
+      "solution": "Handle retries inline within the consumer decorator using a for loop with setTimeout backoff. Never re-throw to AMQP \u2014 always ACK after handling all retries.",
       "implementation": {
         "steps": [
           "Remove findRetryable() from IInboxRepository interface",
@@ -1207,10 +1472,16 @@
       "benefits": [
         "Zero additional DB queries for retries",
         "Message stays in memory during retry loop",
-        "Consumer always ACKs — no AMQP redelivery complexity",
+        "Consumer always ACKs \u2014 no AMQP redelivery complexity",
         "Simpler architecture: no retry polling timer to manage"
       ],
-      "tags": ["inbox", "retry", "consumer", "decorator", "pattern"]
+      "tags": [
+        "inbox",
+        "retry",
+        "consumer",
+        "decorator",
+        "pattern"
+      ]
     },
     {
       "id": "fake-timers-setimmediate-pitfall",
@@ -1222,7 +1493,12 @@
         "wrong": "jest.useFakeTimers();\nservice.emit('event', id);\nawait new Promise(r => setImmediate(r)); // HANGS",
         "correct": "jest.useFakeTimers();\nservice.emit('event', id);\nawait jest.advanceTimersByTimeAsync(0); // Flushes microtasks"
       },
-      "tags": ["jest", "fake-timers", "testing", "anti-pattern"]
+      "tags": [
+        "jest",
+        "fake-timers",
+        "testing",
+        "anti-pattern"
+      ]
     },
     {
       "id": "w3c-traceparent-amqp-header",
@@ -1234,13 +1510,20 @@
         "steps": [
           "Add private buildTraceparentHeader(message) method to each publisher",
           "Check message.metadata?.traceId exists and is a string",
-          "Use message.metadata?.spanId if string, otherwise default '0000000000000000'",
+          "Require both traceId and spanId as valid strings \u2014 skip header if either is missing (W3C spec forbids all-zeros parent-id)",
           "Return { traceparent: `00-${traceId}-${spanId}-01` } or empty object",
           "Spread result into AMQP headers alongside x-aggregate-type etc."
         ],
-        "pattern": "buildTraceparentHeader returns Record<string, string> — empty if no trace context, populated if present. Uses object spread for clean merge with existing headers."
+        "pattern": "buildTraceparentHeader returns Record<string, string> \u2014 empty if no trace context, populated if present. Uses object spread for clean merge with existing headers."
       },
-      "tags": ["distributed-tracing", "w3c", "traceparent", "amqp", "rabbitmq", "observability"]
+      "tags": [
+        "distributed-tracing",
+        "w3c",
+        "traceparent",
+        "amqp",
+        "rabbitmq",
+        "observability"
+      ]
     },
     {
       "id": "cross-stack-metadata-propagation",
@@ -1250,26 +1533,33 @@
       "solution": "Follow the interface-entity-schema-repository-decorator chain: interface first (core), then entity/schema (adapters), then repository record() (adapters), then decorator extraction (consumer), and mirror in Python models/repositories",
       "implementation": {
         "checklist": [
-          "1. Core interface (InboxMessage) — add optional field",
-          "2. Core DTO (CreateInboxMessageDto) — add optional field",
-          "3. TypeORM entity — add @Column with appropriate type (jsonb nullable for metadata)",
-          "4. Mongoose schema — add field with Schema.Types.Mixed",
-          "5. TypeORM repository record() — forward dto.field",
-          "6. Mongoose repository record() — forward in doc creation + toModel mapping",
-          "7. @InboxSubscribe decorator — extract from raw message body, pass to record()",
-          "8. TypeORM migration — ALTER TABLE ADD COLUMN",
-          "9. Python model — add Optional field to both DTO and model classes",
-          "10. Python repository — forward in record() and _to_model()"
+          "1. Core interface (InboxMessage) \u2014 add optional field",
+          "2. Core DTO (CreateInboxMessageDto) \u2014 add optional field",
+          "3. TypeORM entity \u2014 add @Column with appropriate type (jsonb nullable for metadata)",
+          "4. Mongoose schema \u2014 add field with Schema.Types.Mixed",
+          "5. TypeORM repository record() \u2014 forward dto.field",
+          "6. Mongoose repository record() \u2014 forward in doc creation + toModel mapping",
+          "7. @InboxSubscribe decorator \u2014 extract from raw message body, pass to record()",
+          "8. TypeORM migration \u2014 ALTER TABLE ADD COLUMN",
+          "9. Python model \u2014 add Optional field to both DTO and model classes",
+          "10. Python repository \u2014 forward in record() and _to_model()"
         ],
         "key_insight": "When extracting from raw RabbitMQ message, cast to Record<string, unknown> and check typeof === 'object' to avoid forwarding primitives as metadata"
       },
-      "tags": ["metadata", "inbox", "cross-stack", "typescript", "python", "migration"]
+      "tags": [
+        "metadata",
+        "inbox",
+        "cross-stack",
+        "typescript",
+        "python",
+        "migration"
+      ]
     }
   ],
   "metadata": {
-    "total_skills": 27,
-    "total_patterns": 10,
-    "total_anti_patterns": 12,
+    "total_skills": 23,
+    "total_patterns": 6,
+    "total_anti_patterns": 16,
     "last_updated": "2026-03-02T23:30:00Z",
     "created_at": "2026-01-05T00:00:00Z",
     "last_task": "Add metadata to InboxMessage and traceparent to AMQP headers"
