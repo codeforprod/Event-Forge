@@ -105,7 +105,7 @@ describe('GolevelupPublisher', () => {
       );
     });
 
-    it('should use default spanId when only traceId is present', async () => {
+    it('should skip traceparent when only traceId is present without spanId', async () => {
       const message = createMockMessage({
         metadata: {
           traceId: 'abcdef1234567890abcdef1234567890',
@@ -118,9 +118,7 @@ describe('GolevelupPublisher', () => {
 
       const callArgs = mockAmqpConnection.publish.mock.calls[0];
       const publishOptions = callArgs[3];
-      expect(publishOptions?.headers?.traceparent).toBe(
-        '00-abcdef1234567890abcdef1234567890-0000000000000000-01',
-      );
+      expect(publishOptions?.headers?.traceparent).toBeUndefined();
     });
 
     it('should not add traceparent when no traceId in metadata', async () => {
@@ -163,7 +161,7 @@ describe('GolevelupPublisher', () => {
       expect(publishOptions?.headers?.traceparent).toBeUndefined();
     });
 
-    it('should ignore non-string spanId and use default', async () => {
+    it('should skip traceparent when spanId is not a string', async () => {
       const message = createMockMessage({
         metadata: {
           traceId: 'abcdef1234567890abcdef1234567890',
@@ -177,9 +175,7 @@ describe('GolevelupPublisher', () => {
 
       const callArgs = mockAmqpConnection.publish.mock.calls[0];
       const publishOptions = callArgs[3];
-      expect(publishOptions?.headers?.traceparent).toBe(
-        '00-abcdef1234567890abcdef1234567890-0000000000000000-01',
-      );
+      expect(publishOptions?.headers?.traceparent).toBeUndefined();
     });
 
     it('should merge custom headers with traceparent', async () => {

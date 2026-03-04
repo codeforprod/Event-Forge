@@ -98,10 +98,14 @@ class AioPikaPublisher(IMessagePublisher):
             "x-aggregate-id": message.aggregate_id,
             "x-event-type": message.event_type,
         }
-        # Add W3C traceparent header if trace context exists in metadata
-        if message.metadata and message.metadata.get("traceId"):
+        # Add W3C traceparent header if both traceId and spanId exist in metadata
+        if (
+            message.metadata
+            and message.metadata.get("traceId")
+            and message.metadata.get("spanId")
+        ):
             trace_id = str(message.metadata["traceId"])
-            span_id = str(message.metadata.get("spanId", "0000000000000000"))
+            span_id = str(message.metadata["spanId"])
             headers["traceparent"] = f"00-{trace_id}-{span_id}-01"
         if options and options.headers:
             headers.update(options.headers)

@@ -189,12 +189,10 @@ export class DelayedMessagePublisher implements IMessagePublisher {
    */
   private buildTraceparentHeader(message: OutboxMessage): Record<string, string> {
     const traceId = message.metadata?.traceId;
-    if (!traceId || typeof traceId !== 'string') {
+    const spanId = message.metadata?.spanId;
+    if (!traceId || typeof traceId !== 'string' || !spanId || typeof spanId !== 'string') {
       return {};
     }
-    const spanId = typeof message.metadata?.spanId === 'string'
-      ? message.metadata.spanId
-      : '0000000000000000';
     return { traceparent: `00-${traceId}-${spanId}-01` };
   }
 
