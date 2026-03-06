@@ -87,6 +87,30 @@ pending → processing → published
 3. **Lock-based concurrency** - Safe multi-instance deployments
 4. **Exponential backoff** - 5s, 10s, 20s, 40s, 80s with jitter
 
+## CI/CD Pipeline
+
+Single unified workflow: `.github/workflows/ci-cd.yml`
+
+```
+test → release-npm (parallel) → done
+     → release-python (parallel) → done
+```
+
+- **On PR**: only `test` job runs (build, typecheck, lint, test, verify npm pack, verify python build)
+- **On push to main**: `test` → then `release-npm` + `release-python` in parallel
+- **NPM**: uses changesets — creates "Version Packages" PR if changesets exist, publishes if versions bumped
+- **Python**: checks PyPI version vs local `pyproject.toml` — publishes only if version differs
+- **PyPI Trusted Publisher** configured for workflow `ci-cd.yml`, environment `pypi`
+
+### When to update the pipeline
+
+When adding a new package to the monorepo, update:
+1. The `verify_package` list in the `test` job
+2. The Python import verification if adding Python exports
+
+When changing the workflow filename, update:
+1. PyPI Trusted Publisher at https://pypi.org/manage/project/event-forge/settings/publishing/
+
 ## Reference Documents
 
 - `UNIVERSAL_INBOX-OUTBOX_LIBRARY_DESIGN.md` - Complete design specification
@@ -126,7 +150,7 @@ When user types `/ace` or `@ACE`:
 ### Configuration
 
 - **Service Config**: `.claude/ace/config.yaml`
-- **Skillbook**: `.claude/skillbook/event-forge.json`
+- **Skillbook**: `.claude/skillbook/event-forge.toon`
 - **Agent Files**: `.claude/.agent/` (TODO, DONE, LEARNINGS)
 
 ### Agent Pipeline
