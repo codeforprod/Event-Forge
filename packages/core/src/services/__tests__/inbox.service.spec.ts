@@ -14,7 +14,7 @@ describe('InboxService', () => {
     mockRepository = {
       record: jest.fn(),
       exists: jest.fn(),
-      markProcessing: jest.fn(),
+      markProcessing: jest.fn().mockResolvedValue(true),
       markProcessed: jest.fn(),
       markFailed: jest.fn(),
       deleteOlderThan: jest.fn(),

@@ -167,18 +167,24 @@ export class InboxOutboxModule {
       });
 
       // InboxRecoveryService — conditionally created based on recovery config
+      // Use optional injection for MESSAGE_PUBLISHER to support inbox-only configurations
+      const recoveryInject: any[] = [INBOX_REPOSITORY, INBOX_OUTBOX_OPTIONS];
+      if (options.publisher) {
+        recoveryInject.splice(1, 0, MESSAGE_PUBLISHER);
+      }
       providers.push({
         provide: INBOX_RECOVERY_SERVICE,
         useFactory: (
           repository: IInboxRepository,
-          publisher: IMessagePublisher | null,
-          opts: InboxOutboxModuleOptions,
+          ...rest: unknown[]
         ) => {
+          const publisher = options.publisher ? (rest[0] as IMessagePublisher | null) : null;
+          const opts = (options.publisher ? rest[1] : rest[0]) as InboxOutboxModuleOptions;
           const recoveryConfig = opts.inbox?.config?.recovery;
           if (recoveryConfig?.enabled === false) return null;
-          return new InboxRecoveryService(repository, publisher ?? null, opts.inbox?.config);
+          return new InboxRecoveryService(repository, publisher, opts.inbox?.config);
         },
-        inject: [INBOX_REPOSITORY, MESSAGE_PUBLISHER, INBOX_OUTBOX_OPTIONS],
+        inject: recoveryInject,
       });
     }
 

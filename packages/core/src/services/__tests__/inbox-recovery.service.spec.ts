@@ -223,13 +223,15 @@ describe('InboxRecoveryService', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should continue recovery even when publish fails', async () => {
+    it('should continue recovery even when publish fails, with reset_only action', async () => {
       const stuckMessage = createMockMessage();
       mockRepo.findStuckProcessing.mockResolvedValue([stuckMessage]);
       mockRepo.resetForRetry.mockResolvedValue(true);
       mockPublisher.publish.mockRejectedValue(new Error('AMQP connection lost'));
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const events: unknown[] = [];
+      service.on(InboxEvents.MESSAGE_RECOVERED, (data) => events.push(data));
 
       const result = await service.sweep();
 
@@ -238,6 +240,10 @@ describe('InboxRecoveryService', () => {
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Failed to re-publish'),
       );
+      // Event action should be 'reset_only' when publish fails
+      expect(events[0]).toEqual(expect.objectContaining({
+        action: 'reset_only',
+      }));
 
       consoleSpy.mockRestore();
     });

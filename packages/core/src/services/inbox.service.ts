@@ -105,8 +105,12 @@ export class InboxService extends EventEmitter {
     }
 
     try {
-      // Mark as processing
-      await this.repository.markProcessing(message.id);
+      // Mark as processing (atomic guard — prevents double-processing)
+      const canProcess = await this.repository.markProcessing(message.id);
+      if (!canProcess) {
+        // Another consumer already owns this message
+        return;
+      }
 
       // Execute all handlers and collect results
       const results = await Promise.allSettled(

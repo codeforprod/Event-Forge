@@ -152,6 +152,7 @@ export class InboxRecoveryService extends EventEmitter {
     }
 
     // Re-publish to RabbitMQ so the consumer picks it up again
+    let publishSucceeded = false;
     if (this.publisher) {
       try {
         const publishOptions: PublishOptions = {
@@ -183,6 +184,7 @@ export class InboxRecoveryService extends EventEmitter {
           },
           publishOptions,
         );
+        publishSucceeded = true;
       } catch (publishError) {
         console.error(
           `[InboxRecovery] Failed to re-publish message ${message.messageId}: ${
@@ -202,7 +204,7 @@ export class InboxRecoveryService extends EventEmitter {
       source: message.source,
       eventType: message.eventType,
       reason,
-      action: 'reset_and_republished',
+      action: publishSucceeded ? 'reset_and_republished' : 'reset_only',
       recoveryAttempts: (message.recoveryAttempts ?? 0) + 1,
     });
 

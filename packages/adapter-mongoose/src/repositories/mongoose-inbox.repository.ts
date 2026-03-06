@@ -179,7 +179,7 @@ export class MongooseInboxRepository implements IInboxRepository {
         { updatedAt: { $lt: cutoffDate } },
         { updatedAt: null },
       ],
-    }).limit(limit);
+    }).sort({ updatedAt: 1 }).limit(limit);
 
     return docs.map((doc) =>
       this.toInboxMessage(doc as InboxMessageDocument),

@@ -21,15 +21,21 @@ export const migration: Migration = {
   name: 'AddInboxRecoveryFields',
 
   async up(queryRunner: QueryRunner): Promise<void> {
-    // Add updated_at column with default
+    // Add updated_at column WITHOUT default first, so existing rows get NULL
     await queryRunner.query(`
       ALTER TABLE inbox_messages
-      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE;
     `);
 
-    // Backfill updated_at from created_at for existing rows
+    // Backfill existing rows with created_at (these are NULL since no default was set)
     await queryRunner.query(`
       UPDATE inbox_messages SET updated_at = created_at WHERE updated_at IS NULL;
+    `);
+
+    // Now set the default for future inserts
+    await queryRunner.query(`
+      ALTER TABLE inbox_messages
+      ALTER COLUMN updated_at SET DEFAULT NOW();
     `);
 
     // Add recovery_attempts column
