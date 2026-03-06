@@ -1,5 +1,12 @@
 # @prodforcode/event-forge-rabbitmq-publisher
 
+## 1.5.0
+
+### Patch Changes
+
+- Updated dependencies [17a270e]
+  - @prodforcode/event-forge-core@1.5.0
+
 ## 1.0.1
 
 ### Patch Changes
