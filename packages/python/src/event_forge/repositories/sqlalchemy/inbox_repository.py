@@ -14,6 +14,19 @@ from .entities import InboxMessageEntity
 
 logger = logging.getLogger(__name__)
 
+# Statuses that indicate the message should be reprocessed (not a true duplicate)
+_REPROCESSABLE_STATUSES = {
+    InboxMessageStatus.PROCESSING.value,
+    InboxMessageStatus.FAILED.value,
+}
+
+# Statuses that indicate the message is truly done (duplicate)
+_TERMINAL_STATUSES = {
+    InboxMessageStatus.PROCESSED.value,
+    InboxMessageStatus.PERMANENTLY_FAILED.value,
+    InboxMessageStatus.RECEIVED.value,
+}
+
 
 class SQLAlchemyInboxRepository(IInboxRepository):
     """SQLAlchemy inbox repository with deduplication via UNIQUE constraint."""
@@ -30,6 +43,7 @@ class SQLAlchemyInboxRepository(IInboxRepository):
                 source=dto.source,
                 event_type=dto.event_type,
                 payload=dto.payload,
+                metadata_=dto.metadata,
                 status=InboxMessageStatus.RECEIVED.value,
                 retry_count=0,
                 max_retries=dto.max_retries if dto.max_retries is not None else 3,
@@ -55,9 +69,14 @@ class SQLAlchemyInboxRepository(IInboxRepository):
                     )
                 )
                 existing = result.scalar_one()
+
+                # Status-aware deduplication:
+                # PROCESSING/FAILED → not a duplicate (needs reprocessing after recovery)
+                # PROCESSED/PERMANENTLY_FAILED/RECEIVED → true duplicate
+                is_duplicate = existing.status not in _REPROCESSABLE_STATUSES
                 return RecordInboxMessageResult(
                     message=self._to_model(existing),
-                    is_duplicate=True,
+                    is_duplicate=is_duplicate,
                 )
 
     async def exists(self, message_id: str, source: str) -> bool:
@@ -72,14 +91,24 @@ class SQLAlchemyInboxRepository(IInboxRepository):
             )
             return result.scalar_one_or_none() is not None
 
-    async def mark_processing(self, message_id: str) -> None:
+    async def mark_processing(self, message_id: str) -> bool:
+        """Atomically transition to PROCESSING. Only from RECEIVED or FAILED."""
         async with self._session_factory() as session:
-            await session.execute(
+            result = await session.execute(
                 update(InboxMessageEntity)
-                .where(InboxMessageEntity.id == message_id)
+                .where(
+                    and_(
+                        InboxMessageEntity.id == message_id,
+                        InboxMessageEntity.status.in_([
+                            InboxMessageStatus.RECEIVED.value,
+                            InboxMessageStatus.FAILED.value,
+                        ]),
+                    )
+                )
                 .values(status=InboxMessageStatus.PROCESSING.value)
             )
             await session.commit()
+            return (result.rowcount or 0) > 0
 
     async def mark_processed(self, message_id: str) -> None:
         async with self._session_factory() as session:
@@ -142,6 +171,69 @@ class SQLAlchemyInboxRepository(IInboxRepository):
             result = await session.execute(stmt)
             return [self._to_model(e) for e in result.scalars().all()]
 
+    async def find_stuck_processing(self, cutoff_date: datetime, limit: int) -> list[InboxMessage]:
+        """Find messages stuck in PROCESSING status since before cutoff_date."""
+        async with self._session_factory() as session:
+            stmt = (
+                select(InboxMessageEntity)
+                .where(
+                    and_(
+                        InboxMessageEntity.status == InboxMessageStatus.PROCESSING.value,
+                        or_(
+                            InboxMessageEntity.updated_at < cutoff_date,
+                            InboxMessageEntity.updated_at.is_(None),
+                        ),
+                    )
+                )
+                .order_by(InboxMessageEntity.updated_at.asc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            return [self._to_model(e) for e in result.scalars().all()]
+
+    async def reset_for_retry(self, message_id: str, reason: str) -> bool:
+        """Atomically reset a PROCESSING message to FAILED for retry."""
+        now = datetime.now(timezone.utc)
+        async with self._session_factory() as session:
+            result = await session.execute(
+                update(InboxMessageEntity)
+                .where(
+                    and_(
+                        InboxMessageEntity.id == message_id,
+                        InboxMessageEntity.status == InboxMessageStatus.PROCESSING.value,
+                    )
+                )
+                .values(
+                    status=InboxMessageStatus.FAILED.value,
+                    recovery_attempts=InboxMessageEntity.recovery_attempts + 1,
+                    last_recovered_at=now,
+                    recovery_reason=reason,
+                )
+            )
+            await session.commit()
+            return (result.rowcount or 0) > 0
+
+    async def mark_permanently_failed_recovery(self, message_id: str, reason: str) -> None:
+        """Mark a PROCESSING message as PERMANENTLY_FAILED during recovery."""
+        now = datetime.now(timezone.utc)
+        async with self._session_factory() as session:
+            await session.execute(
+                update(InboxMessageEntity)
+                .where(
+                    and_(
+                        InboxMessageEntity.id == message_id,
+                        InboxMessageEntity.status == InboxMessageStatus.PROCESSING.value,
+                    )
+                )
+                .values(
+                    status=InboxMessageStatus.PERMANENTLY_FAILED.value,
+                    recovery_attempts=InboxMessageEntity.recovery_attempts + 1,
+                    last_recovered_at=now,
+                    recovery_reason=reason,
+                )
+            )
+            await session.commit()
+
     async def delete_older_than(self, date: datetime) -> int:
         async with self._session_factory() as session:
             result = await session.execute(
@@ -164,6 +256,7 @@ class SQLAlchemyInboxRepository(IInboxRepository):
             source=entity.source,
             event_type=entity.event_type,
             payload=entity.payload,
+            metadata=entity.metadata_,
             status=InboxMessageStatus(entity.status),
             retry_count=entity.retry_count,
             max_retries=entity.max_retries,
@@ -171,4 +264,8 @@ class SQLAlchemyInboxRepository(IInboxRepository):
             error_message=entity.error_message,
             scheduled_at=entity.scheduled_at,
             created_at=entity.created_at,
+            updated_at=getattr(entity, 'updated_at', None),
+            recovery_attempts=getattr(entity, 'recovery_attempts', 0),
+            last_recovered_at=getattr(entity, 'last_recovered_at', None),
+            recovery_reason=getattr(entity, 'recovery_reason', None),
         )

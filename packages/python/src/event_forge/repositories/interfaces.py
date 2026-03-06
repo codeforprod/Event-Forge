@@ -73,7 +73,11 @@ class IInboxRepository(ABC):
         pass
 
     @abstractmethod
-    async def mark_processing(self, message_id: str) -> None:
+    async def mark_processing(self, message_id: str) -> bool:
+        """Atomically transition message to PROCESSING status.
+        Only transitions from RECEIVED or FAILED.
+        Returns True if transition succeeded, False if message is in another state.
+        """
         pass
 
     @abstractmethod
@@ -92,4 +96,18 @@ class IInboxRepository(ABC):
 
     @abstractmethod
     async def delete_older_than(self, date: datetime) -> int:
+        pass
+
+    async def find_stuck_processing(self, cutoff_date: datetime, limit: int) -> list[InboxMessage]:
+        """Find messages stuck in PROCESSING status since before cutoff_date."""
+        return []
+
+    async def reset_for_retry(self, message_id: str, reason: str) -> bool:
+        """Reset a stuck PROCESSING message to FAILED for retry.
+        Returns True if reset succeeded (was in PROCESSING state).
+        """
+        return False
+
+    async def mark_permanently_failed_recovery(self, message_id: str, reason: str) -> None:
+        """Mark a message as PERMANENTLY_FAILED during recovery."""
         pass

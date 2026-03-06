@@ -66,6 +66,18 @@ export const InboxMessageSchema = new Schema<InboxMessageDocument>(
       default: null,
       index: true,
     },
+    recoveryAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastRecoveredAt: {
+      type: Date,
+      default: null,
+    },
+    recoveryReason: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
@@ -125,6 +137,20 @@ InboxMessageSchema.index(
   },
   {
     name: 'idx_inbox_retry',
+  },
+);
+
+/**
+ * Partial index for recovery sweep (only indexes processing messages)
+ */
+InboxMessageSchema.index(
+  {
+    status: 1,
+    updatedAt: 1,
+  },
+  {
+    name: 'idx_inbox_recovery_sweep',
+    partialFilterExpression: { status: 'processing' },
   },
 );
 

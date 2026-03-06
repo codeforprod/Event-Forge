@@ -1,6 +1,7 @@
 import {
   CreateInboxMessageDto,
   IInboxRepository,
+  InboxMessage,
   InboxMessageStatus,
   RecordInboxMessageResult,
 } from '@prodforcode/event-forge-core';
@@ -30,6 +31,18 @@ export class TypeOrmInboxRepository implements IInboxRepository {
     });
 
     if (existing) {
+      // Status-aware dedup: allow re-processing of stuck or failed messages
+      if (
+        existing.status === InboxMessageStatus.PROCESSING ||
+        existing.status === InboxMessageStatus.FAILED
+      ) {
+        return {
+          message: existing,
+          isDuplicate: false,
+        };
+      }
+
+      // Truly done (processed, permanently_failed, received) — duplicate
       return {
         message: existing,
         isDuplicate: true,
@@ -71,6 +84,17 @@ export class TypeOrmInboxRepository implements IInboxRepository {
           );
         }
 
+        // Status-aware dedup even in race condition path
+        if (
+          existing.status === InboxMessageStatus.PROCESSING ||
+          existing.status === InboxMessageStatus.FAILED
+        ) {
+          return {
+            message: existing,
+            isDuplicate: false,
+          };
+        }
+
         return {
           message: existing,
           isDuplicate: true,
@@ -91,10 +115,17 @@ export class TypeOrmInboxRepository implements IInboxRepository {
     return count > 0;
   }
 
-  async markProcessing(id: string): Promise<void> {
-    await this.repository.update(id, {
-      status: InboxMessageStatus.PROCESSING,
-    });
+  async markProcessing(id: string): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(InboxMessageEntity)
+      .set({ status: InboxMessageStatus.PROCESSING })
+      .where('id = :id AND status IN (:...statuses)', {
+        id,
+        statuses: [InboxMessageStatus.RECEIVED, InboxMessageStatus.FAILED],
+      })
+      .execute();
+    return (result.affected ?? 0) > 0;
   }
 
   async markProcessed(id: string): Promise<void> {
@@ -130,5 +161,54 @@ export class TypeOrmInboxRepository implements IInboxRepository {
     });
 
     return result.affected ?? 0;
+  }
+
+  async findStuckProcessing(cutoffDate: Date, limit: number): Promise<InboxMessage[]> {
+    const entities = await this.repository.find({
+      where: {
+        status: InboxMessageStatus.PROCESSING,
+        updatedAt: LessThan(cutoffDate),
+      },
+      take: limit,
+      order: { updatedAt: 'ASC' },
+    });
+    return entities;
+  }
+
+  async resetForRetry(id: string, reason: string): Promise<boolean> {
+    const result = await this.repository
+      .createQueryBuilder()
+      .update(InboxMessageEntity)
+      .set({
+        status: InboxMessageStatus.FAILED,
+        recoveryReason: reason,
+        lastRecoveredAt: new Date(),
+        errorMessage: `Recovered: ${reason}`,
+        recoveryAttempts: () => 'recovery_attempts + 1',
+      } as never)
+      .where('id = :id AND status = :status', {
+        id,
+        status: InboxMessageStatus.PROCESSING,
+      })
+      .execute();
+    return (result.affected ?? 0) > 0;
+  }
+
+  async markPermanentlyFailedRecovery(id: string, reason: string): Promise<void> {
+    await this.repository
+      .createQueryBuilder()
+      .update(InboxMessageEntity)
+      .set({
+        status: InboxMessageStatus.PERMANENTLY_FAILED,
+        recoveryReason: reason,
+        lastRecoveredAt: new Date(),
+        errorMessage: `Recovery exhausted: ${reason}`,
+        recoveryAttempts: () => 'recovery_attempts + 1',
+      } as never)
+      .where('id = :id AND status = :status', {
+        id,
+        status: InboxMessageStatus.PROCESSING,
+      })
+      .execute();
   }
 }

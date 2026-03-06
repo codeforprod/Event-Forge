@@ -15,6 +15,12 @@ from ...models import CreateInboxMessageDto, InboxMessage
 from ...models.enums import InboxMessageStatus
 from ..interfaces import IInboxRepository, RecordInboxMessageResult
 
+# Statuses that indicate the message should be reprocessed (not a true duplicate)
+_REPROCESSABLE_STATUSES = {
+    InboxMessageStatus.PROCESSING.value,
+    InboxMessageStatus.FAILED.value,
+}
+
 # Index definitions — call ensure_indexes() once at startup
 INBOX_INDEXES = [
     {
@@ -34,6 +40,11 @@ INBOX_INDEXES = [
         "keys": [("status", 1), ("retry_count", 1), ("scheduled_at", 1), ("created_at", 1)],
         "name": "idx_inbox_retry",
     },
+    {
+        "keys": [("status", 1), ("updated_at", 1)],
+        "name": "idx_inbox_recovery_sweep",
+        "partialFilterExpression": {"status": InboxMessageStatus.PROCESSING.value},
+    },
 ]
 
 
@@ -44,6 +55,7 @@ class MotorInboxRepository(IInboxRepository):
     - Deduplication via unique compound index on (message_id, source)
     - DuplicateKeyError (code 11000) handling for race conditions
     - findOneAndUpdate for atomic retry locking
+    - Status-aware deduplication for recovery scenarios
     """
 
     def __init__(self, db: AsyncIOMotorDatabase, collection: str = "inbox_messages") -> None:
@@ -53,11 +65,13 @@ class MotorInboxRepository(IInboxRepository):
     async def ensure_indexes(self) -> None:
         """Create indexes. Call once at application startup."""
         for idx in INBOX_INDEXES:
-            await self._collection.create_index(
-                idx["keys"],
-                name=idx["name"],
-                unique=idx.get("unique", False),
-            )
+            kwargs: dict[str, Any] = {
+                "name": idx["name"],
+                "unique": idx.get("unique", False),
+            }
+            if "partialFilterExpression" in idx:
+                kwargs["partialFilterExpression"] = idx["partialFilterExpression"]
+            await self._collection.create_index(idx["keys"], **kwargs)
 
     async def record(self, dto: CreateInboxMessageDto) -> RecordInboxMessageResult:
         # Check if message already exists
@@ -67,9 +81,11 @@ class MotorInboxRepository(IInboxRepository):
         })
 
         if existing:
+            # Status-aware deduplication
+            is_duplicate = existing.get("status") not in _REPROCESSABLE_STATUSES
             return RecordInboxMessageResult(
                 message=self._to_model(existing),
-                is_duplicate=True,
+                is_duplicate=is_duplicate,
             )
 
         now = datetime.now(timezone.utc)
@@ -86,6 +102,10 @@ class MotorInboxRepository(IInboxRepository):
             "scheduled_at": None,
             "processed_at": None,
             "created_at": now,
+            "updated_at": now,
+            "recovery_attempts": 0,
+            "last_recovered_at": None,
+            "recovery_reason": None,
         }
 
         try:
@@ -108,9 +128,11 @@ class MotorInboxRepository(IInboxRepository):
                     f"for message_id={dto.message_id}, source={dto.source}"
                 )
 
+            # Status-aware deduplication in race condition path too
+            is_duplicate = existing.get("status") not in _REPROCESSABLE_STATUSES
             return RecordInboxMessageResult(
                 message=self._to_model(existing),
-                is_duplicate=True,
+                is_duplicate=is_duplicate,
             )
 
     async def exists(self, message_id: str, source: str) -> bool:
@@ -120,11 +142,25 @@ class MotorInboxRepository(IInboxRepository):
         })
         return count > 0
 
-    async def mark_processing(self, message_id: str) -> None:
-        await self._collection.update_one(
-            {"_id": ObjectId(message_id)},
-            {"$set": {"status": InboxMessageStatus.PROCESSING.value}},
+    async def mark_processing(self, message_id: str) -> bool:
+        """Atomically transition to PROCESSING. Only from RECEIVED or FAILED."""
+        now = datetime.now(timezone.utc)
+        result = await self._collection.find_one_and_update(
+            {
+                "_id": ObjectId(message_id),
+                "status": {"$in": [
+                    InboxMessageStatus.RECEIVED.value,
+                    InboxMessageStatus.FAILED.value,
+                ]},
+            },
+            {
+                "$set": {
+                    "status": InboxMessageStatus.PROCESSING.value,
+                    "updated_at": now,
+                },
+            },
         )
+        return result is not None
 
     async def mark_processed(self, message_id: str) -> None:
         now = datetime.now(timezone.utc)
@@ -134,6 +170,7 @@ class MotorInboxRepository(IInboxRepository):
                 "$set": {
                     "status": InboxMessageStatus.PROCESSED.value,
                     "processed_at": now,
+                    "updated_at": now,
                 },
             },
         )
@@ -150,15 +187,74 @@ class MotorInboxRepository(IInboxRepository):
             if permanent
             else InboxMessageStatus.FAILED.value
         )
+        now = datetime.now(timezone.utc)
+        update_doc: dict[str, Any] = {
+            "$set": {
+                "status": status,
+                "error_message": error,
+                "scheduled_at": scheduled_at,
+                "updated_at": now,
+            },
+            "$inc": {"retry_count": 1},
+        }
         await self._collection.update_one(
             {"_id": ObjectId(message_id)},
+            update_doc,
+        )
+
+    async def find_stuck_processing(self, cutoff_date: datetime, limit: int) -> list[InboxMessage]:
+        """Find messages stuck in PROCESSING status since before cutoff_date."""
+        cursor = self._collection.find(
+            {
+                "status": InboxMessageStatus.PROCESSING.value,
+                "$or": [
+                    {"updated_at": {"$lt": cutoff_date}},
+                    {"updated_at": None},
+                ],
+            }
+        ).sort("updated_at", 1).limit(limit)
+
+        results = []
+        async for doc in cursor:
+            results.append(self._to_model(doc))
+        return results
+
+    async def reset_for_retry(self, message_id: str, reason: str) -> bool:
+        """Atomically reset a PROCESSING message to FAILED for retry."""
+        now = datetime.now(timezone.utc)
+        result = await self._collection.find_one_and_update(
+            {
+                "_id": ObjectId(message_id),
+                "status": InboxMessageStatus.PROCESSING.value,
+            },
             {
                 "$set": {
-                    "status": status,
-                    "error_message": error,
-                    "scheduled_at": scheduled_at,
+                    "status": InboxMessageStatus.FAILED.value,
+                    "last_recovered_at": now,
+                    "recovery_reason": reason,
+                    "updated_at": now,
                 },
-                "$inc": {"retry_count": 1},
+                "$inc": {"recovery_attempts": 1},
+            },
+        )
+        return result is not None
+
+    async def mark_permanently_failed_recovery(self, message_id: str, reason: str) -> None:
+        """Mark a PROCESSING message as PERMANENTLY_FAILED during recovery."""
+        now = datetime.now(timezone.utc)
+        await self._collection.find_one_and_update(
+            {
+                "_id": ObjectId(message_id),
+                "status": InboxMessageStatus.PROCESSING.value,
+            },
+            {
+                "$set": {
+                    "status": InboxMessageStatus.PERMANENTLY_FAILED.value,
+                    "last_recovered_at": now,
+                    "recovery_reason": reason,
+                    "updated_at": now,
+                },
+                "$inc": {"recovery_attempts": 1},
             },
         )
 
@@ -185,4 +281,8 @@ class MotorInboxRepository(IInboxRepository):
             scheduled_at=doc.get("scheduled_at"),
             processed_at=doc.get("processed_at"),
             created_at=doc["created_at"],
+            updated_at=doc.get("updated_at"),
+            recovery_attempts=doc.get("recovery_attempts", 0),
+            last_recovered_at=doc.get("last_recovered_at"),
+            recovery_reason=doc.get("recovery_reason"),
         )

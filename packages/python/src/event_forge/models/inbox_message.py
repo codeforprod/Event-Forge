@@ -27,3 +27,7 @@ class InboxMessage(BaseModel):
     error_message: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    recovery_attempts: int = 0
+    last_recovered_at: Optional[datetime] = None
+    recovery_reason: Optional[str] = None

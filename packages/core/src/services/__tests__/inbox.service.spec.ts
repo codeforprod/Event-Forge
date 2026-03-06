@@ -14,7 +14,7 @@ describe('InboxService', () => {
     mockRepository = {
       record: jest.fn(),
       exists: jest.fn(),
-      markProcessing: jest.fn(),
+      markProcessing: jest.fn().mockResolvedValue(true),
       markProcessed: jest.fn(),
       markFailed: jest.fn(),
       deleteOlderThan: jest.fn(),
@@ -220,7 +220,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markProcessed.mockResolvedValue(undefined);
 
       await service.processMessage(message);
@@ -270,7 +270,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markProcessed.mockResolvedValue(undefined);
 
       const emitSpy = jest.spyOn(service, 'emit');
@@ -303,7 +303,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markProcessed.mockResolvedValue(undefined);
 
       const startTime = Date.now();
@@ -334,7 +334,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markFailed.mockResolvedValue(undefined);
 
       const emitSpy = jest.spyOn(service, 'emit');
@@ -363,7 +363,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markFailed.mockResolvedValue(undefined);
 
       const emitSpy = jest.spyOn(service, 'emit');
@@ -393,7 +393,7 @@ describe('InboxService', () => {
         createdAt: new Date(),
       };
 
-      mockRepository.markProcessing.mockResolvedValue(undefined);
+      mockRepository.markProcessing.mockResolvedValue(true);
       mockRepository.markFailed.mockResolvedValue(undefined);
 
       await expect(service.processMessage(message)).rejects.toThrow();

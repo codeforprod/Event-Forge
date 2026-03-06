@@ -234,9 +234,28 @@ export function InboxSubscribe(
       // If any repository call (markProcessing, markFailed, etc.) throws unexpectedly
       // (e.g., DB connection lost), we log and return (ACK) to prevent infinite redelivery.
       try {
+        // Atomic markProcessing: only transitions from RECEIVED or FAILED to PROCESSING.
+        // Returns false if another consumer is already processing this message.
+        const canProcess = await inboxRepository.markProcessing(inboxMessage.id);
+        if (!canProcess) {
+          console.log(
+            `[InboxSubscribe] Message ${messageId} already being processed by another consumer, skipping`,
+          );
+          return;
+        }
+
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
           try {
-            await inboxRepository.markProcessing(inboxMessage.id);
+            // First attempt: already marked as processing above
+            if (attempt > 0) {
+              const canRetry = await inboxRepository.markProcessing(inboxMessage.id);
+              if (!canRetry) {
+                console.log(
+                  `[InboxSubscribe] Message ${messageId} claimed by another consumer during retry, skipping`,
+                );
+                return;
+              }
+            }
 
             const result = await originalMethod.apply(this, args);
 

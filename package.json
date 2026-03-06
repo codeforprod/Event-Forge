@@ -17,7 +17,7 @@
     "format": "prettier --write \"packages/**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,md,json}\"",
     "changeset": "changeset",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && npm run sync-versions",
     "sync-versions": "node scripts/sync-python-version.js",
     "ci:publish": "changeset publish",
     "release": "pnpm build && pnpm ci:publish"
