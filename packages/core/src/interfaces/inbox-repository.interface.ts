@@ -33,10 +33,13 @@ export interface IInboxRepository {
   exists(messageId: string, source: string): Promise<boolean>;
 
   /**
-   * Mark a message as being processed
+   * Mark a message as being processed (atomic status guard)
+   * Only transitions from RECEIVED or FAILED to PROCESSING.
+   * Returns false if the message is already in PROCESSING status (another consumer owns it).
    * @param id Message ID
+   * @returns true if status transitioned successfully, false if already processing
    */
-  markProcessing(id: string): Promise<void>;
+  markProcessing(id: string): Promise<boolean>;
 
   /**
    * Mark a message as successfully processed
@@ -59,4 +62,29 @@ export interface IInboxRepository {
    * @returns Number of deleted messages
    */
   deleteOlderThan(date: Date): Promise<number>;
+
+  /**
+   * Find messages stuck in processing status beyond a timeout threshold
+   * @param cutoffDate Messages with updatedAt before this date are considered stuck
+   * @param limit Maximum number of messages to return
+   * @returns List of stuck messages
+   */
+  findStuckProcessing?(cutoffDate: Date, limit: number): Promise<InboxMessage[]>;
+
+  /**
+   * Atomically reset a stuck processing message to failed for retry
+   * Only updates if the message is still in PROCESSING status.
+   * Increments recoveryAttempts and sets recovery metadata.
+   * @param id Message ID
+   * @param reason Recovery reason
+   * @returns true if the message was actually reset
+   */
+  resetForRetry?(id: string, reason: string): Promise<boolean>;
+
+  /**
+   * Mark a stuck processing message as permanently failed (recovery exhausted)
+   * @param id Message ID
+   * @param reason Recovery reason
+   */
+  markPermanentlyFailedRecovery?(id: string, reason: string): Promise<void>;
 }

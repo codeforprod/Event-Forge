@@ -5,6 +5,7 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 
 
@@ -64,4 +65,16 @@ export class InboxMessageEntity implements InboxMessage {
 
   @CreateDateColumn({ name: 'received_at' })
   receivedAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+
+  @Column({ name: 'recovery_attempts', type: 'int', default: 0 })
+  recoveryAttempts: number;
+
+  @Column({ name: 'last_recovered_at', type: 'timestamptz', nullable: true })
+  lastRecoveredAt?: Date;
+
+  @Column({ name: 'recovery_reason', type: 'text', nullable: true })
+  recoveryReason?: string;
 }

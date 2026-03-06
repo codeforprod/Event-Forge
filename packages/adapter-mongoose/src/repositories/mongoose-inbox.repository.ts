@@ -26,6 +26,20 @@ export class MongooseInboxRepository implements IInboxRepository {
     if (existing) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const message = this.toInboxMessage(existing as InboxMessageDocument);
+
+      // Status-aware dedup: allow re-processing of stuck or failed messages
+      if (
+        existing.status === InboxMessageStatus.PROCESSING ||
+        existing.status === InboxMessageStatus.FAILED
+      ) {
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message,
+          isDuplicate: false,
+        };
+      }
+
+      // Truly done (processed, permanently_failed, received) — duplicate
       return {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         message,
@@ -71,6 +85,19 @@ export class MongooseInboxRepository implements IInboxRepository {
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const message = this.toInboxMessage(existing as InboxMessageDocument);
+
+        // Status-aware dedup even in race condition path
+        if (
+          existing.status === InboxMessageStatus.PROCESSING ||
+          existing.status === InboxMessageStatus.FAILED
+        ) {
+          return {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            message,
+            isDuplicate: false,
+          };
+        }
+
         return {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           message,
@@ -90,15 +117,18 @@ export class MongooseInboxRepository implements IInboxRepository {
     return count > 0;
   }
 
-  async markProcessing(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: id },
+  async markProcessing(id: string): Promise<boolean> {
+    const result = await this.model.findOneAndUpdate(
       {
-        $set: {
-          status: InboxMessageStatus.PROCESSING,
-        },
+        _id: id,
+        status: { $in: [InboxMessageStatus.RECEIVED, InboxMessageStatus.FAILED] },
       },
+      {
+        $set: { status: InboxMessageStatus.PROCESSING },
+      },
+      { new: true },
     );
+    return result !== null;
   }
 
   async markProcessed(id: string): Promise<void> {
@@ -142,6 +172,52 @@ export class MongooseInboxRepository implements IInboxRepository {
     return result.deletedCount;
   }
 
+  async findStuckProcessing(cutoffDate: Date, limit: number): Promise<InboxMessage[]> {
+    const docs = await this.model.find({
+      status: InboxMessageStatus.PROCESSING,
+      $or: [
+        { updatedAt: { $lt: cutoffDate } },
+        { updatedAt: null },
+      ],
+    }).limit(limit);
+
+    return docs.map((doc) =>
+      this.toInboxMessage(doc as InboxMessageDocument),
+    );
+  }
+
+  async resetForRetry(id: string, reason: string): Promise<boolean> {
+    const result = await this.model.findOneAndUpdate(
+      { _id: id, status: InboxMessageStatus.PROCESSING },
+      {
+        $set: {
+          status: InboxMessageStatus.FAILED,
+          recoveryReason: reason,
+          lastRecoveredAt: new Date(),
+          errorMessage: `Recovered: ${reason}`,
+        },
+        $inc: { recoveryAttempts: 1 },
+      },
+      { new: true },
+    );
+    return result !== null;
+  }
+
+  async markPermanentlyFailedRecovery(id: string, reason: string): Promise<void> {
+    await this.model.findOneAndUpdate(
+      { _id: id, status: InboxMessageStatus.PROCESSING },
+      {
+        $set: {
+          status: InboxMessageStatus.PERMANENTLY_FAILED,
+          recoveryReason: reason,
+          lastRecoveredAt: new Date(),
+          errorMessage: `Recovery exhausted: ${reason}`,
+        },
+        $inc: { recoveryAttempts: 1 },
+      },
+    );
+  }
+
   /**
    * Convert Mongoose document to InboxMessage interface
    */
@@ -159,6 +235,10 @@ export class MongooseInboxRepository implements IInboxRepository {
       maxRetries: doc.maxRetries,
       scheduledAt: doc.scheduledAt ?? undefined,
       createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+      recoveryAttempts: (doc as unknown as Record<string, unknown>).recoveryAttempts as number ?? 0,
+      lastRecoveredAt: (doc as unknown as Record<string, unknown>).lastRecoveredAt as Date ?? undefined,
+      recoveryReason: (doc as unknown as Record<string, unknown>).recoveryReason as string ?? undefined,
     };
   }
 }

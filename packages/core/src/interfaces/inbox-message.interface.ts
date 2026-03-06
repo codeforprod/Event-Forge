@@ -41,6 +41,18 @@ export interface InboxMessage {
 
   /** Timestamp when the message was received */
   createdAt: Date;
+
+  /** Timestamp of last update (used for recovery timeout detection) */
+  updatedAt?: Date;
+
+  /** Number of times this message has been recovered from stuck processing */
+  recoveryAttempts?: number;
+
+  /** When the last recovery happened */
+  lastRecoveredAt?: Date;
+
+  /** Reason for the last recovery */
+  recoveryReason?: string;
 }
 
 /**

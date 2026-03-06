@@ -7,3 +7,4 @@ export const INBOX_REPOSITORY = Symbol('INBOX_REPOSITORY');
 export const MESSAGE_PUBLISHER = Symbol('MESSAGE_PUBLISHER');
 export const OUTBOX_SERVICE = Symbol('OUTBOX_SERVICE');
 export const INBOX_SERVICE = Symbol('INBOX_SERVICE');
+export const INBOX_RECOVERY_SERVICE = Symbol('INBOX_RECOVERY_SERVICE');

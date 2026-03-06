@@ -22,6 +22,7 @@ export enum InboxEvents {
   MESSAGE_DUPLICATE = 'inbox:message:duplicate',
   MESSAGE_PROCESSED = 'inbox:message:processed',
   MESSAGE_FAILED = 'inbox:message:failed',
+  MESSAGE_RECOVERED = 'inbox:message:recovered',
 }
 
 /**

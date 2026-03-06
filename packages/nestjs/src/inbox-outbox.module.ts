@@ -2,6 +2,7 @@ import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
 import {
   OutboxService,
   InboxService,
+  InboxRecoveryService,
   IOutboxRepository,
   IInboxRepository,
   IMessagePublisher,
@@ -15,6 +16,7 @@ import {
   MESSAGE_PUBLISHER,
   OUTBOX_SERVICE,
   INBOX_SERVICE,
+  INBOX_RECOVERY_SERVICE,
 } from './inbox-outbox.constants';
 import {
   InboxOutboxModuleOptions,
@@ -38,6 +40,7 @@ export class InboxOutboxModule {
       INBOX_SERVICE,
       OUTBOX_REPOSITORY,
       INBOX_REPOSITORY,
+      INBOX_RECOVERY_SERVICE,
     ];
 
     // Conditionally add lifecycle service if autoStart is enabled (default: true)
@@ -75,6 +78,7 @@ export class InboxOutboxModule {
         INBOX_SERVICE,
         OUTBOX_REPOSITORY,
         INBOX_REPOSITORY,
+        INBOX_RECOVERY_SERVICE,
         EventForgeLifecycleService,
       ],
       global: true,
@@ -160,6 +164,21 @@ export class InboxOutboxModule {
           return new InboxService(repository, opts.inbox?.config);
         },
         inject: [INBOX_REPOSITORY, INBOX_OUTBOX_OPTIONS],
+      });
+
+      // InboxRecoveryService — conditionally created based on recovery config
+      providers.push({
+        provide: INBOX_RECOVERY_SERVICE,
+        useFactory: (
+          repository: IInboxRepository,
+          publisher: IMessagePublisher | null,
+          opts: InboxOutboxModuleOptions,
+        ) => {
+          const recoveryConfig = opts.inbox?.config?.recovery;
+          if (recoveryConfig?.enabled === false) return null;
+          return new InboxRecoveryService(repository, publisher ?? null, opts.inbox?.config);
+        },
+        inject: [INBOX_REPOSITORY, MESSAGE_PUBLISHER, INBOX_OUTBOX_OPTIONS],
       });
     }
 
@@ -299,6 +318,20 @@ export class InboxOutboxModule {
         },
         inject: [INBOX_REPOSITORY, INBOX_OUTBOX_OPTIONS],
       },
+      {
+        provide: INBOX_RECOVERY_SERVICE,
+        useFactory: (
+          repository: IInboxRepository,
+          publisher: IMessagePublisher | null,
+          options: InboxOutboxModuleOptions,
+        ): InboxRecoveryService | null => {
+          if (!repository) return null;
+          const recoveryConfig = options.inbox?.config?.recovery;
+          if (recoveryConfig?.enabled === false) return null;
+          return new InboxRecoveryService(repository, publisher ?? null, options.inbox?.config);
+        },
+        inject: [INBOX_REPOSITORY, MESSAGE_PUBLISHER, INBOX_OUTBOX_OPTIONS],
+      },
     ];
   }
 
@@ -317,6 +350,7 @@ export class InboxOutboxModule {
       provide: EventForgeLifecycleService,
       useFactory: (
         outboxService: OutboxService | null,
+        inboxRecoveryService: InboxRecoveryService | null,
         options: InboxOutboxModuleOptions,
       ): EventForgeLifecycleService | null => {
         // Only provide lifecycle service if:
@@ -325,9 +359,9 @@ export class InboxOutboxModule {
         if (!outboxService || options.lifecycle?.autoStart === false) {
           return null;
         }
-        return new EventForgeLifecycleService(outboxService);
+        return new EventForgeLifecycleService(outboxService, inboxRecoveryService);
       },
-      inject: [OUTBOX_SERVICE, INBOX_OUTBOX_OPTIONS],
+      inject: [OUTBOX_SERVICE, INBOX_RECOVERY_SERVICE, INBOX_OUTBOX_OPTIONS],
     };
   }
 }
